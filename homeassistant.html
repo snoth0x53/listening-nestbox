@@ -42,6 +42,7 @@
 <li><strong>Apple TV:</strong> Home app → Cameras → Nest box.</li>
 </ol>
 <div class="note warn"><strong>Pitfall:</strong> do not tick several domains. A bridge with many domains exposes dozens of devices (78 in my case). Never pair that one; delete it under Devices &amp; services → HomeKit Bridge → ⋮ → Delete. Leave any existing HomeKit entries alone.</div>
+<figure><img src="img/home-app.jpg" alt="Screenshot of the Home app on an iPhone: the Cameras section shows the live infrared picture from inside the nest box" loading="lazy" style="max-height:560px;width:auto;margin:0 auto;display:block"><figcaption>The nest box camera in the Home app on the iPhone (the Apple TV shows the same picture). The small label shows the age of the frame in seconds.</figcaption></figure>
 <p>If the picture hangs, check the stream first (<code>systemctl is-active mediamtx</code>), then close and reopen the Home app on the Apple TV.</p>
 
 <div class="pager"><a href="detection.html">&larr; Detection</a><a href="results.html">Results &rarr;</a></div>

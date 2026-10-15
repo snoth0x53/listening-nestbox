@@ -39,3 +39,6 @@ footer.site{border-top:1px solid var(--line);padding:18px 0 32px;color:var(--mut
 
 footer.site a.egg{color:inherit;text-decoration:none}
 footer.site a.egg:hover,footer.site a.egg:focus{text-decoration:underline}
+
+audio{display:block;width:100%;max-width:560px;margin:0 auto 1.6em}
+.audio-label{text-align:center;margin-bottom:.4em}

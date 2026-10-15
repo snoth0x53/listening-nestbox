@@ -36,7 +36,7 @@
 <p>Before anything went into the box, camera and IR light ran together in a dark room: Pi at about 48&nbsp;°C, no throttling. Check the same on yours:</p>
 <pre><code>vcgencmd measure_temp
 vcgencmd get_throttled     # 0x0 is good</code></pre>
-<p>A value of <code>0x50000</code> directly after boot means a very short undervoltage event since startup. If it happens once right after boot it is harmless; a stronger power supply or a shorter, thicker cable would remove it.</p>
+<p>A value of <code>0x50000</code> directly after boot means that the supply voltage dipped below the limit at some point since startup (undervoltage, and throttling because of it). If it shows only right after boot and never again, it is harmless; a stronger power supply or a shorter, thicker cable would remove it.</p>
 <figure><img src="img/inside-box.jpg" alt="Looking into the open nest box: the camera and the IR light are mounted on the blue back wall, with the ribbon cable and power wires leaving through a hole in the floor" loading="lazy" style="max-height:560px;width:auto;max-width:100%;margin:0 auto;display:block"><figcaption>Inside the nest box: camera and IR light on the back wall, ribbon cable and power wires leave through a hole below.</figcaption></figure>
 <figure><svg viewBox="0 0 560 290" role="img" aria-label="Wiring: Raspberry Pi pin 2 (5 volts) and pin 6 (ground) feed the input of an LM2596 buck converter. Its output, set to about 2.9 volts, feeds the IR light module. The camera plugs into the Pi with a flat ribbon cable." style="width:100%;height:auto;max-width:620px;display:block;margin:0 auto;font-family:system-ui,sans-serif">
 <g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round">
@@ -72,6 +72,6 @@ vcgencmd get_throttled     # 0x0 is good</code></pre>
 
 <div class="pager"><a href="index.html">&larr; Overview</a><a href="stream.html">Live stream &rarr;</a></div>
 </div></main>
-<footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: <a href="mailto:birdsarentreal@mailbox.org">birdsarentreal@mailbox.org</a><br>Birds aren't real. This box is just checking.</div></footer>
+<footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: <a href="mailto:birdsarentreal@mailbox.org">birdsarentreal@mailbox.org</a><br><a href="404.html" class="egg">Birds aren't real.</a> This box is just checking.</div></footer>
 </body>
 </html>

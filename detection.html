@@ -222,11 +222,11 @@ sudo systemctl enable --now nestbox-watch
 journalctl -u nestbox-watch -b --no-pager | tail -n 20</code></pre>
 <h2>Reading the log</h2>
 <pre><code>journalctl -u nestbox-watch --since today --no-pager | grep -E "MOTION|Bird detected|OCCUPIED|EMPTY"</code></pre>
-<p>The script only logs when something happens, so "no entries" means "quiet", not "dead". Use <code>systemctl is-active nestbox-watch</code> to check the service itself. If the Pi's clock lags after boot, add <code>-b</code> instead of using <code>--since</code>.</p>
+<p>The script only logs when something happens, so "no entries" means "quiet", not "dead". Use <code>systemctl is-active nestbox-watch</code> to check the service itself. If the Pi's clock lags after boot, use <code>-b</code> (this boot) instead of <code>--since today</code>.</p>
 <figure><div class="ph" role="img" aria-label="Photo placeholder: Snapshot with a detection box">Photo to come: Snapshot with a detection box</div><figcaption>A saved picture with the model's detection box and confidence.</figcaption></figure>
 
 <div class="pager"><a href="sound.html">&larr; Bird sounds</a><a href="homeassistant.html">Home Assistant &rarr;</a></div>
 </div></main>
-<footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: <a href="mailto:birdsarentreal@mailbox.org">birdsarentreal@mailbox.org</a><br>Birds aren't real. This box is just checking.</div></footer>
+<footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: <a href="mailto:birdsarentreal@mailbox.org">birdsarentreal@mailbox.org</a><br><a href="404.html" class="egg">Birds aren't real.</a> This box is just checking.</div></footer>
 </body>
 </html>

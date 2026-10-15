@@ -23,7 +23,7 @@
 <h2>Check that it is running</h2>
 <pre><code>systemctl is-active mediamtx
 sudo systemctl restart mediamtx</code></pre>
-<figure><div class="ph" role="img" aria-label="Photo placeholder: Browser view of the live picture">Photo to come: Browser view of the live picture</div><figcaption>The WebRTC view in a browser: IR picture inside the box.</figcaption></figure>
+<figure><img src="img/live-ir.jpg" alt="Black-and-white infrared picture from inside the empty nest box, with a small white test object in the corner" loading="lazy" style="max-height:560px;width:auto;margin:0 auto;display:block"><figcaption>The live picture from inside the box in infrared (here with a test object in the corner).</figcaption></figure>
 <h2>Keep it in the home network</h2>
 <p>The stream has no password in this setup, so it must never be reachable from the internet. Do not forward any ports on the router. To look from outside the house, use a VPN into your own network. Note that over a router VPN, <code>.local</code> names often do not resolve; use the Pi's IP address instead.</p>
 

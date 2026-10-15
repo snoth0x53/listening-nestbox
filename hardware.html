@@ -12,11 +12,12 @@
 <main><div class="wrap">
 
 <h1>Hardware</h1>
-<p class="lead">Only the camera and the IR light sit inside the box. The Pi, the power regulator and the microphone stay outside, so the nest stays free of electronics that can heat up.</p>
+<p class="lead">Only the camera and the IR light sit inside the box. The Pi and the power regulator live in a weatherproof enclosure next to it, and the microphone hangs outside, so the nest stays free of electronics that can heat up.</p>
 <h2>Parts</h2>
 <div class="table-scroll"><table>
 <tr><th>Part</th><th>Notes</th></tr>
-<tr><td>Raspberry Pi 5 (4 GB)</td><td>Raspberry Pi OS Lite, 64-bit. Powered by the official 27 W supply.</td></tr>
+<tr><td>Raspberry Pi 5 (4 GB) with active cooler</td><td>Raspberry Pi OS Lite, 64-bit. Powered by the official 27 W supply.</td></tr>
+<tr><td>Weatherproof enclosure, IP67, clear lid</td><td>Holds the Pi and the voltage regulator, mounted next to the box.</td></tr>
 <tr><td>Camera Module 3 Wide NoIR</td><td>No infrared filter, so it sees the IR light. Wide angle, which suits a small box.</td></tr>
 <tr><td>Camera cable, 15-pin to 22-pin, 30 cm</td><td>The Pi 5 uses the smaller connector.</td></tr>
 <tr><td>IR LED module, 850 nm</td><td>Cheap two-pack. Light-sensor (LDR) covered so it stays on permanently.</td></tr>
@@ -25,17 +26,46 @@
 <tr><td>SD card, 64 GB, high endurance</td><td>A "high endurance" card is meant for continuous writing, which this project does all day.</td></tr>
 <tr><td>Tit nest box</td><td>About 25 cm high and 14 cm wide. Little light inside.</td></tr>
 </table></div>
-<figure><div class="ph" role="img" aria-label="Photo placeholder: Parts laid out on a table">Photo to come: Parts laid out on a table</div><figcaption>All parts before assembly.</figcaption></figure>
+<figure><img src="img/camera-ir-module.jpg" alt="A small camera board and an infrared LED module fixed side by side on a thin metal strip, with a flat ribbon cable and cable ties" loading="lazy" style="max-height:560px;width:auto;margin:0 auto;display:block"><figcaption>Camera module (left of the ribbon cable) and IR light on one metal strip. The cable ties are strain relief and hold the strip in place.</figcaption></figure>
 <h2>The IR light</h2>
 <p>The module is fed from the Pi through the LM2596: 5 V from pin 2, ground from pin 6, adjusted to about 2.9 V. At that voltage it is bright enough for the camera and stays much cooler than at full power. It is on permanently, with the light sensor covered; no MOSFET or switching circuit.</p>
 <div class="note warn"><strong>Heat:</strong> the back of the module still gets warm. Once it is mounted in the box it can no longer be touched, so temperature can only be judged indirectly. A small heat sink on the back is an option, and the module is something to watch in summer.</div>
 <h2>Bench test before mounting</h2>
+<figure><img src="img/bench-test.jpg" alt="A nest box standing on a cutting mat next to a Raspberry Pi lying on a multimeter, with a small voltage regulator board and wires connecting them" loading="lazy" style="max-height:560px;width:auto;margin:0 auto;display:block"><figcaption>Bench test: the Pi (lying on a multimeter), the LM2596 and the ribbon cable to the box, before everything went outside.</figcaption></figure>
 <p>Before anything went into the box, camera and IR light ran together in a dark room: Pi at about 48&nbsp;°C, no throttling. Check the same on yours:</p>
 <pre><code>vcgencmd measure_temp
 vcgencmd get_throttled     # 0x0 is good</code></pre>
 <p>A value of <code>0x50000</code> directly after boot means a very short undervoltage event since startup. If it happens once right after boot it is harmless; a stronger power supply or a shorter, thicker cable would remove it.</p>
-<figure><div class="ph" role="img" aria-label="Photo placeholder: Camera and IR module inside the box">Photo to come: Camera and IR module inside the box</div><figcaption>Camera and IR module fixed inside the box.</figcaption></figure>
-<figure><div class="ph" role="img" aria-label="Photo placeholder: Wiring diagram">Photo to come: Wiring diagram</div><figcaption>Wiring: Pi pins 2 and 6, buck converter, IR module.</figcaption></figure>
+<figure><img src="img/inside-box.jpg" alt="Looking into the open nest box: the camera and the IR light are mounted on the blue back wall, with the ribbon cable and power wires leaving through a hole in the floor" loading="lazy" style="max-height:560px;width:auto;margin:0 auto;display:block"><figcaption>Inside the nest box: camera and IR light on the back wall, ribbon cable and power wires leave through a hole below.</figcaption></figure>
+<figure><svg viewBox="0 0 560 290" role="img" aria-label="Wiring: Raspberry Pi pin 2 (5 volts) and pin 6 (ground) feed the input of an LM2596 buck converter. Its output, set to about 2.9 volts, feeds the IR light module. The camera plugs into the Pi with a flat ribbon cable." style="width:100%;height:auto;max-width:620px;display:block;margin:0 auto;font-family:system-ui,sans-serif">
+<g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round">
+<rect x="8" y="20" width="150" height="170" rx="8"/>
+<rect x="205" y="30" width="140" height="100" rx="8"/>
+<rect x="395" y="30" width="157" height="100" rx="8"/>
+<rect x="395" y="200" width="157" height="70" rx="8"/>
+<path d="M158 62 H205" stroke="#c0392b"/><path d="M158 100 H205"/>
+<path d="M345 62 H395" stroke="#c0392b"/><path d="M345 100 H395"/>
+<path d="M83 190 V235 H395" stroke-dasharray="8 6"/>
+</g>
+<g fill="currentColor" font-size="17">
+<text x="83" y="46" text-anchor="middle" font-weight="700">Raspberry Pi 5</text>
+<text x="18" y="86" font-size="16">Pin 2: 5 V</text><text x="18" y="124" font-size="16">Pin 6: GND</text>
+<text x="275" y="62" text-anchor="middle" font-weight="700">LM2596</text>
+<text x="275" y="84" text-anchor="middle" font-size="15">buck converter</text>
+<text x="275" y="112" text-anchor="middle" font-size="15">about 2.9 V out</text>
+<text x="473" y="62" text-anchor="middle" font-weight="700">IR light</text>
+<text x="473" y="84" text-anchor="middle" font-size="15">light sensor</text><text x="473" y="104" text-anchor="middle" font-size="15">covered</text>
+<text x="473" y="232" text-anchor="middle" font-weight="700">Camera</text>
+<text x="473" y="254" text-anchor="middle" font-size="15">NoIR, ribbon cable</text>
+<text x="181" y="52" text-anchor="middle" font-size="16" fill="#c0392b">+</text><text x="181" y="92" text-anchor="middle" font-size="18">&minus;</text>
+<text x="370" y="52" text-anchor="middle" font-size="16" fill="#c0392b">+</text><text x="370" y="92" text-anchor="middle" font-size="18">&minus;</text>
+<text x="94" y="214" font-size="14" opacity=".75">camera port</text>
+</g></svg>
+<figcaption>Wiring of the IR light. Pin numbers are the physical pins on the Pi's 40-pin header. The camera uses its own flat ribbon cable (dashed).</figcaption></figure>
+<h2>Pi and regulator outside</h2>
+<p>The Pi with its active cooler and the LM2596 sit in a weatherproof enclosure with a clear lid, fastened next to the box. Two cables go into the nest box through a hole: the flat camera ribbon and the two wires for the IR light. A green LED on the Pi is visible through the lid, which makes a quick look from the window enough to see that it is alive.</p>
+<figure><img src="img/outdoor-enclosure.jpg" alt="A grey weatherproof enclosure with metal latches fixed to a post next to a red nest box, partly covered by a fig leaf" loading="lazy" style="max-height:560px;width:auto;margin:0 auto;display:block"><figcaption>The enclosure next to the nest box, with the power cable leaving at the bottom.</figcaption></figure>
+<figure><img src="img/enclosure-inside.jpg" alt="Through the clear lid: a Raspberry Pi 5 with a fan cooler, a small voltage regulator board and several wires on a perforated mounting plate" loading="lazy" style="max-height:560px;width:auto;margin:0 auto;display:block"><figcaption>Inside the enclosure: Pi 5 with active cooler and the LM2596 board on a perforated plate.</figcaption></figure>
 <h2>Mains power</h2>
 <p>The Pi is powered from an outdoor socket about 2–3 m below the box. Anything involving mains voltage outdoors should be done by a qualified electrician, with a residual-current device in the circuit and a weatherproof enclosure for the supply.</p>
 

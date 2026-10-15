@@ -19,7 +19,35 @@
 <li>RTSP in the home network: <code>rtsp://&lt;pi-address&gt;:8554/nestbox</code> (used by Home Assistant)</li>
 <li>Browser view: <code>http://&lt;pi-address&gt;:8889/nestbox/</code></li>
 </ul>
-<div class="note"><strong>Still to add:</strong> my <code>mediamtx.yml</code> path section and the systemd unit. They will be pasted in from the running system rather than written from memory, so they are exactly what works.</div>
+<h2>Install</h2>
+<p>Download the <code>linux_arm64</code> release from the MediaMTX releases page on GitHub and unpack it to <code>/opt/mediamtx</code>. The Raspberry Pi camera support is built in, so nothing else is needed. The unpacked folder contains the program and a long <code>mediamtx.yml</code> with all settings and their defaults.</p>
+<h2>Configuration</h2>
+<p>I left the file as shipped and changed only the <code>paths</code> section at the very bottom. The path name is the last part of the stream address. The camera runs at 1280x720 and 15 frames per second, which is plenty for a nest box and keeps the Pi cool.</p>
+<pre><code>paths:
+  nestbox:
+    source: rpiCamera
+    rpiCameraWidth: 1280
+    rpiCameraHeight: 720
+    rpiCameraFPS: 15
+    rpiCameraBitrate: 2000000
+  all_others:</code></pre>
+<p>Two defaults worth knowing: autofocus is on (<code>rpiCameraAfMode: continuous</code>) and the camera is not flipped. If your picture is upside down, set <code>rpiCameraHFlip: true</code> and <code>rpiCameraVFlip: true</code> in the same path section.</p>
+<h2>Start it at boot</h2>
+<p>Save as <code>/etc/systemd/system/mediamtx.service</code>, with your own user name:</p>
+<pre><code>[Unit]
+Description=MediaMTX
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=&lt;your-user&gt;
+ExecStart=/opt/mediamtx/mediamtx /opt/mediamtx/mediamtx.yml
+Restart=always
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+<pre><code>sudo systemctl daemon-reload
+sudo systemctl enable --now mediamtx</code></pre>
 <h2>Check that it is running</h2>
 <pre><code>systemctl is-active mediamtx
 sudo systemctl restart mediamtx</code></pre>
@@ -29,6 +57,6 @@ sudo systemctl restart mediamtx</code></pre>
 
 <div class="pager"><a href="hardware.html">&larr; Hardware</a><a href="sound.html">Bird sounds &rarr;</a></div>
 </div></main>
-<footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: [contact e-mail to be added]</div></footer>
+<footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: <a href="mailto:birdsarentreal@mailbox.org">birdsarentreal@mailbox.org</a></div></footer>
 </body>
 </html>

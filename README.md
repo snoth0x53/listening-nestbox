@@ -36,4 +36,4 @@ then open http://localhost:8000.
 
 ## Contact
 
-[contact e-mail to be added]
+birdsarentreal@mailbox.org

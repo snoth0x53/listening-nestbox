@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hardware · The Listening Nest Box</title>
+<meta name="description" content="Parts list, wiring and heat notes for the nest box camera.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><div class="wrap"><a class="brand" href="index.html">The Listening Nest Box</a><nav aria-label="Pages"><a href="index.html">Overview</a><a href="hardware.html" aria-current="page">Hardware</a><a href="stream.html">Live stream</a><a href="sound.html">Bird sounds</a><a href="detection.html">Detection</a><a href="homeassistant.html">Home Assistant</a><a href="results.html">Results</a></nav></div></header>
+<main><div class="wrap">
+
+<h1>Hardware</h1>
+<p class="lead">Only the camera and the IR light sit inside the box. The Pi, the power regulator and the microphone stay outside, so the nest stays free of electronics that can heat up.</p>
+<h2>Parts</h2>
+<div class="table-scroll"><table>
+<tr><th>Part</th><th>Notes</th></tr>
+<tr><td>Raspberry Pi 5 (4 GB)</td><td>Raspberry Pi OS Lite, 64-bit. Powered by the official 27 W supply.</td></tr>
+<tr><td>Camera Module 3 Wide NoIR</td><td>No infrared filter, so it sees the IR light. Wide angle, which suits a small box.</td></tr>
+<tr><td>Camera cable, 15-pin to 22-pin, 30 cm</td><td>The Pi 5 uses the smaller connector.</td></tr>
+<tr><td>IR LED module, 850 nm</td><td>Cheap two-pack. Light-sensor (LDR) covered so it stays on permanently.</td></tr>
+<tr><td>LM2596 buck converter</td><td>Lowers the voltage for the IR module.</td></tr>
+<tr><td>USB lavalier microphone, omnidirectional</td><td>Mounted outside, for BirdNET-Pi.</td></tr>
+<tr><td>SD card, 64 GB, high endurance</td><td>A "high endurance" card is meant for continuous writing, which this project does all day.</td></tr>
+<tr><td>Tit nest box</td><td>About 25 cm high and 14 cm wide. Little light inside.</td></tr>
+</table></div>
+<figure><div class="ph" role="img" aria-label="Photo placeholder: Parts laid out on a table">Photo to come: Parts laid out on a table</div><figcaption>All parts before assembly.</figcaption></figure>
+<h2>The IR light</h2>
+<p>The module is fed from the Pi through the LM2596: 5 V from pin 2, ground from pin 6, adjusted to about 2.9 V. At that voltage it is bright enough for the camera and stays much cooler than at full power. It is on permanently, with the light sensor covered; no MOSFET or switching circuit.</p>
+<div class="note warn"><strong>Heat:</strong> the back of the module still gets warm. Once it is mounted in the box it can no longer be touched, so temperature can only be judged indirectly. A small heat sink on the back is an option, and the module is something to watch in summer.</div>
+<h2>Bench test before mounting</h2>
+<p>Before anything went into the box, camera and IR light ran together in a dark room: Pi at about 48&nbsp;°C, no throttling. Check the same on yours:</p>
+<pre><code>vcgencmd measure_temp
+vcgencmd get_throttled     # 0x0 is good</code></pre>
+<p>A value of <code>0x50000</code> directly after boot means a very short undervoltage event since startup. If it happens once right after boot it is harmless; a stronger power supply or a shorter, thicker cable would remove it.</p>
+<figure><div class="ph" role="img" aria-label="Photo placeholder: Camera and IR module inside the box">Photo to come: Camera and IR module inside the box</div><figcaption>Camera and IR module fixed inside the box.</figcaption></figure>
+<figure><div class="ph" role="img" aria-label="Photo placeholder: Wiring diagram">Photo to come: Wiring diagram</div><figcaption>Wiring: Pi pins 2 and 6, buck converter, IR module.</figcaption></figure>
+<h2>Mains power</h2>
+<p>The Pi is powered from an outdoor socket about 2–3 m below the box. Anything involving mains voltage outdoors should be done by a qualified electrician, with a residual-current device in the circuit and a weatherproof enclosure for the supply.</p>
+
+<div class="pager"><a href="index.html">&larr; Overview</a><a href="stream.html">Live stream &rarr;</a></div>
+</div></main>
+<footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: [contact e-mail to be added]</div></footer>
+</body>
+</html>

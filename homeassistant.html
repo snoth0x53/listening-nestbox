@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Home Assistant · The Listening Nest Box</title>
+<meta name="description" content="Webhook, push notification, dashboard tile and live picture on Apple TV through Home Assistant.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><div class="wrap"><a class="brand" href="index.html">The Listening Nest Box</a><nav aria-label="Pages"><a href="index.html">Overview</a><a href="hardware.html">Hardware</a><a href="stream.html">Live stream</a><a href="sound.html">Bird sounds</a><a href="detection.html">Detection</a><a href="homeassistant.html" aria-current="page">Home Assistant</a><a href="results.html">Results</a></nav></div></header>
+<main><div class="wrap">
+
+<h1>Home Assistant</h1>
+<p class="lead">The script talks to Home Assistant through a webhook. Home Assistant turns the messages into a push notification and a dashboard tile.</p>
+<h2>1. A switch for "bird present"</h2>
+<p>Settings → Devices &amp; services → Helpers → create a <strong>Toggle</strong> named "Bird present". That gives <code>input_boolean.bird_present</code>.</p>
+<h2>2. The automation</h2>
+<p>Trigger: <strong>Webhook</strong> with a long random ID, allowed method POST only, <em>local only</em> switched on. Then a "choose" on the message:</p>
+<div class="table-scroll"><table>
+<tr><th>Message (<code>trigger.json.state</code>)</th><th>Action</th></tr>
+<tr><td><code>motion</code></td><td>Push notification to the phone ("Movement in the nest box")</td></tr>
+<tr><td><code>occupied</code></td><td>Turn <code>input_boolean.bird_present</code> on</td></tr>
+<tr><td><code>empty</code></td><td>Turn <code>input_boolean.bird_present</code> off</td></tr>
+</table></div>
+<div class="note warn"><strong>Treat the webhook address like a password.</strong> Anyone inside your network who knows it can switch the tile. Keep it only in the service drop-in file, never in the script, a screenshot or a public repository.</div>
+<p>Test without a bird, from the Pi:</p>
+<pre><code>curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Content-Type: application/json" \
+  -d '{"state":"motion"}' http://&lt;home-assistant&gt;:8123/api/webhook/&lt;secret-id&gt;</code></pre>
+<p>Expected: <code>200</code>. The automation's <strong>Traces</strong> show what arrived.</p>
+<h2>3. The dashboard tile</h2>
+<p>A tile card for <code>input_boolean.bird_present</code>, name "Bird present", bird icon, with a <strong>visibility</strong> condition "state is on". The tile appears only while somebody is in the box.</p>
+<figure><div class="ph" role="img" aria-label="Photo placeholder: Dashboard with the Bird present tile">Photo to come: Dashboard with the Bird present tile</div><figcaption>The tile on the dashboard while the box is occupied.</figcaption></figure>
+<h2>4. Push notifications</h2>
+<p>Install the Home Assistant companion app on the phone. A focus mode such as "Sleep" silences the push; allow the Home Assistant app in that focus if you want notifications at night.</p>
+<h2>5. Live picture on iPhone and Apple TV</h2>
+<p>The route is: Pi stream → Home Assistant camera → HomeKit → Home app. Everything stays in the home network, iCloud recording is off. The picture has no sound and a delay of a few seconds.</p>
+<ol>
+<li><strong>Camera in Home Assistant:</strong> add the <em>Generic Camera</em> integration with stream source <code>rtsp://&lt;pi-address&gt;:8554/nestbox</code>, RTSP transport <code>tcp</code>, name "Nest box".</li>
+<li><strong>HomeKit bridge:</strong> add the <em>HomeKit Bridge</em> integration and tick <strong>only the Camera domain</strong>. Home Assistant then creates a separate accessory-mode entry that holds just the camera.</li>
+<li><strong>Pair:</strong> open the "HomeKit Pairing" notification in Home Assistant, then in the Home app tap <strong>+ → Add Accessory</strong>, scan the QR code and accept the "uncertified accessory" warning.</li>
+<li><strong>Apple TV:</strong> Home app → Cameras → Nest box.</li>
+</ol>
+<div class="note warn"><strong>Pitfall:</strong> do not tick several domains. A bridge with many domains exposes dozens of devices (78 in my case). Never pair that one; delete it under Devices &amp; services → HomeKit Bridge → ⋮ → Delete. Leave any existing HomeKit entries alone.</div>
+<p>If the picture hangs, check the stream first (<code>systemctl is-active mediamtx</code>), then close and reopen the Home app on the Apple TV.</p>
+
+<div class="pager"><a href="detection.html">&larr; Detection</a><a href="results.html">Results &rarr;</a></div>
+</div></main>
+<footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: [contact e-mail to be added]</div></footer>
+</body>
+</html>

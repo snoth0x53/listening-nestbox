@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Detection · The Listening Nest Box</title>
+<meta name="description" content="The motion and bird-detection script with the full code, settings and service setup.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><div class="wrap"><a class="brand" href="index.html">The Listening Nest Box</a><nav aria-label="Pages"><a href="index.html">Overview</a><a href="hardware.html">Hardware</a><a href="stream.html">Live stream</a><a href="sound.html">Bird sounds</a><a href="detection.html" aria-current="page">Detection</a><a href="homeassistant.html">Home Assistant</a><a href="results.html">Results</a></nav></div></header>
+<main><div class="wrap">
+
+<h1>Detection</h1>
+<p class="lead">One small Python script watches the stream, notices movement, asks an object-detection model whether a bird is in the picture and reports to Home Assistant.</p>
+<h2>How it decides</h2>
+<ol>
+<li><strong>Motion.</strong> The picture is shrunk and blurred, compared to a slowly moving background, and counts as "motion" when about 1 % of the pixels change noticeably.</li>
+<li><strong>Bird check.</strong> While there is motion, a YOLOv8n model (COCO class 14, "bird") looks at the full frame about once a second.</li>
+<li><strong>Messages.</strong> <code>motion</code> at most once per minute. <code>occupied</code> after three hits within 20 seconds. <code>empty</code> after 90 seconds without a hit.</li>
+<li><strong>Pictures.</strong> At most one picture every 3 seconds is saved, labelled <code>bird</code> or <code>nobird</code>, the last 1500 are kept.</li>
+</ol>
+<h2>Why motion counts as a hit</h2>
+<p>In a real box a bird is often visible only as a beak or head at the top edge of the picture, and a general-purpose model misses that much of the time. The camera sits inside the box, so movement there is almost always a bird. The script therefore counts <em>either</em> a model hit <em>or</em> motion (<code>MODE = "both"</code>). While the box is occupied, the model keeps checking every 5 seconds, so a bird sitting still keeps the status. The mode can be set to <code>"model"</code> or <code>"motion"</code> at the top of the script.</p>
+<div class="note warn"><strong>Expect false alarms:</strong> insects, spiders, light changes and anything that moves in front of the lens count as motion. That is a deliberate trade-off for not missing birds; thresholds will be tuned with real data in spring.</div>
+<h2>No usage data</h2>
+<p>Libraries like Ultralytics can send usage statistics. The script switches this off in code (<code>settings.update({"sync": False})</code>). It is also worth turning off once in the shell, including the optional integrations:</p>
+<pre><code>yolo settings sync=False clearml=False comet=False dvc=False mlflow=False raytune=False</code></pre>
+<p>The model file <code>yolov8n.pt</code> is downloaded once and then runs locally.</p>
+<h2>Installation</h2>
+<pre><code>mkdir -p ~/nestbox ~/tmp
+python3 -m venv ~/nestbox/venv
+TMPDIR=~/tmp ~/nestbox/venv/bin/pip install --no-cache-dir ultralytics opencv-python-headless requests</code></pre>
+<p>Use <code>opencv-python-headless</code>, not <code>opencv-python</code>; the latter needs graphics libraries a headless Pi does not have. The <code>TMPDIR</code> trick is needed because <code>/tmp</code> is a small RAM disk on the Pi and large installs can fill it.</p>
+<h2>The script</h2>
+<p>Save as <code>~/nestbox/watch.py</code> (<a href="watch.py">download</a>):</p>
+<pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;Nest box watch: motion -&gt; bird check -&gt; message to Home Assistant.&quot;&quot;&quot;
+import os
+import threading
+import time
+from datetime import datetime
+from pathlib import Path
+
+os.environ[&quot;OPENCV_FFMPEG_CAPTURE_OPTIONS&quot;] = &quot;rtsp_transport;tcp&quot;
+
+import cv2
+import requests
+from ultralytics import YOLO, settings
+
+settings.update({&quot;sync&quot;: False})  # never send usage data
+
+# ---------- Settings ----------
+RTSP = &quot;rtsp://127.0.0.1:8554/nestbox&quot;
+HA_WEBHOOK = os.environ.get(&quot;HA_WEBHOOK&quot;, &quot;&quot;)  # e.g. http://&lt;home-assistant&gt;:8123/api/webhook/&lt;secret-id&gt;
+MODE = &quot;both&quot;             # what counts as a hit for &quot;occupied&quot;: &quot;model&quot;, &quot;motion&quot; or &quot;both&quot;
+MOTION_FRAC = 0.01        # share of changed pixels that counts as motion
+PIXEL_DIFF = 25           # brightness difference per pixel
+BIRD_CONF = 0.15          # minimum confidence for &quot;bird&quot;
+MIN_CONF = 0.05           # below this nothing is shown at all
+CHECK_IMGSZ = 640         # image size for the bird check
+HITS_NEEDED = 3           # this many hits ...
+HIT_WINDOW = 20           # ... within this many seconds = occupied
+EMPTY_AFTER = 90          # seconds without a hit = empty
+CHECK_EVERY = 1.0         # bird check while there is motion (seconds)
+CHECK_EVERY_OCC = 5.0     # bird check while occupied (a bird may sit still)
+MOTION_NOTIFY_EVERY = 60  # seconds between two motion messages
+SNAP_EVERY = 3            # seconds between two saved pictures
+SNAP_DIR = Path.home() / &quot;nestbox&quot; / &quot;snaps&quot;
+MAX_SNAPS = 1500
+BIRD_CLASS = 14           # COCO: &quot;bird&quot;
+# ------------------------------
+
+latest = {&quot;frame&quot;: None, &quot;ok&quot;: False}
+
+
+def log(msg):
+    print(f&quot;{datetime.now():%H:%M:%S} {msg}&quot;, flush=True)
+
+
+def reader():
+    &quot;&quot;&quot;Reads the stream continuously and keeps only the newest frame.&quot;&quot;&quot;
+    while True:
+        cap = cv2.VideoCapture(RTSP, cv2.CAP_FFMPEG)
+        if not cap.isOpened():
+            log(&quot;Stream not reachable, retrying in 5 s&quot;)
+            time.sleep(5)
+            continue
+        log(&quot;Stream connected&quot;)
+        while True:
+            ok, frame = cap.read()
+            if not ok:
+                break
+            latest[&quot;frame&quot;] = frame
+            latest[&quot;ok&quot;] = True
+        cap.release()
+        latest[&quot;ok&quot;] = False
+        log(&quot;Stream lost, reconnecting&quot;)
+        time.sleep(2)
+
+
+def notify(state):
+    log(f&quot;=== Nest box: {state.upper()} ===&quot;)
+    if HA_WEBHOOK:
+        try:
+            requests.post(HA_WEBHOOK, json={&quot;state&quot;: state, &quot;time&quot;: datetime.now().isoformat()}, timeout=5)
+        except Exception as e:
+            log(f&quot;Home Assistant not reachable: {e}&quot;)
+
+
+def save_snap(frame, label, boxes=None):
+    SNAP_DIR.mkdir(parents=True, exist_ok=True)
+    img = frame.copy()
+    for (x1, y1, x2, y2, c) in boxes or []:
+        cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+        cv2.putText(img, f&quot;{c:.2f}&quot;, (int(x1), max(int(y1) - 5, 12)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+    cv2.imwrite(str(SNAP_DIR / f&quot;{datetime.now():%Y%m%d-%H%M%S}-{label}.jpg&quot;), img)
+    files = sorted(SNAP_DIR.glob(&quot;*.jpg&quot;))
+    for old in files[:-MAX_SNAPS]:
+        old.unlink()
+
+
+def main():
+    threading.Thread(target=reader, daemon=True).start()
+    log(&quot;Loading bird model ...&quot;)
+    model = YOLO(&quot;yolov8n.pt&quot;)
+    log(f&quot;Mode: {MODE}&quot;)
+
+    def find_birds(frame):
+        res = model(frame, imgsz=CHECK_IMGSZ, conf=MIN_CONF, classes=[BIRD_CLASS], verbose=False)[0]
+        return [(*b.xyxy[0].tolist(), float(b.conf[0])) for b in res.boxes]
+
+    bg = None
+    warmup = 30
+    occupied = False
+    hits = []
+    last_hit = 0.0
+    last_check = 0.0
+    last_snap = 0.0
+    last_motion_msg = 0.0
+    last_seen = None
+
+    while True:
+        time.sleep(0.07)
+        frame = latest[&quot;frame&quot;]
+        if frame is None or frame is last_seen:
+            continue
+        last_seen = frame
+
+        small = cv2.GaussianBlur(cv2.cvtColor(cv2.resize(frame, (320, 180)), cv2.COLOR_BGR2GRAY), (9, 9), 0)
+        if bg is None:
+            bg = small.astype(&quot;float&quot;)
+            continue
+        diff = cv2.absdiff(small, cv2.convertScaleAbs(bg))
+        motion = (diff &gt; PIXEL_DIFF).mean() &gt; MOTION_FRAC
+        cv2.accumulateWeighted(small, bg, 0.05)
+        if warmup &gt; 0:
+            warmup -= 1
+            continue
+
+        now = time.time()
+        if motion and now - last_motion_msg &gt; MOTION_NOTIFY_EVERY:
+            last_motion_msg = now
+            notify(&quot;motion&quot;)
+
+        interval = CHECK_EVERY_OCC if occupied else CHECK_EVERY
+        if (motion or occupied) and now - last_check &gt;= interval:
+            last_check = now
+            boxes = find_birds(frame)
+            birds = [b for b in boxes if b[4] &gt;= BIRD_CONF]
+            best = max((b[4] for b in boxes), default=0.0)
+            if birds:
+                log(f&quot;Bird detected (confidence {best:.2f})&quot;)
+                if now - last_snap &gt;= SNAP_EVERY:
+                    save_snap(frame, &quot;bird&quot;, birds)
+                    last_snap = now
+            elif motion:
+                log(f&quot;Motion, but no bird detected (best score {best:.2f})&quot;)
+                if now - last_snap &gt;= SNAP_EVERY:
+                    save_snap(frame, &quot;nobird&quot;, boxes)
+                    last_snap = now
+            hit = (bool(birds) and MODE in (&quot;model&quot;, &quot;both&quot;)) or (motion and MODE in (&quot;motion&quot;, &quot;both&quot;))
+            if hit:
+                hits.append(now)
+                last_hit = now
+            hits = [t for t in hits if now - t &lt;= HIT_WINDOW]
+            if not occupied and len(hits) &gt;= HITS_NEEDED:
+                occupied = True
+                notify(&quot;occupied&quot;)
+
+        if occupied and now - last_hit &gt; EMPTY_AFTER:
+            occupied = False
+            hits = []
+            notify(&quot;empty&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<h2>Run it as a service</h2>
+<p>A systemd unit keeps it running after a reboot. The webhook address is kept in a separate drop-in file, so it never ends up in the script:</p>
+<pre><code># /etc/systemd/system/nestbox-watch.service
+[Unit]
+Description=Nest box watch
+After=network-online.target mediamtx.service
+
+[Service]
+User=&lt;your-user&gt;
+ExecStart=/home/&lt;your-user&gt;/nestbox/venv/bin/python /home/&lt;your-user&gt;/nestbox/watch.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+# /etc/systemd/system/nestbox-watch.service.d/ha.conf
+[Service]
+Environment=HA_WEBHOOK=http://&lt;home-assistant&gt;:8123/api/webhook/&lt;secret-id&gt;</code></pre>
+<pre><code>sudo systemctl daemon-reload
+sudo systemctl enable --now nestbox-watch
+journalctl -u nestbox-watch -b --no-pager | tail -n 20</code></pre>
+<h2>Reading the log</h2>
+<pre><code>journalctl -u nestbox-watch --since today --no-pager | grep -E "MOTION|Bird detected|OCCUPIED|EMPTY"</code></pre>
+<p>The script only logs when something happens, so "no entries" means "quiet", not "dead". Use <code>systemctl is-active nestbox-watch</code> to check the service itself. If the Pi's clock lags after boot, add <code>-b</code> instead of using <code>--since</code>.</p>
+<figure><div class="ph" role="img" aria-label="Photo placeholder: Snapshot with a detection box">Photo to come: Snapshot with a detection box</div><figcaption>A saved picture with the model's detection box and confidence.</figcaption></figure>
+
+<div class="pager"><a href="sound.html">&larr; Bird sounds</a><a href="homeassistant.html">Home Assistant &rarr;</a></div>
+</div></main>
+<footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: [contact e-mail to be added]</div></footer>
+</body>
+</html>

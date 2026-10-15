@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Results · The Listening Nest Box</title>
+<meta name="description" content="Status, lessons learned and next steps of the nest box project.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><div class="wrap"><a class="brand" href="index.html">The Listening Nest Box</a><nav aria-label="Pages"><a href="index.html">Overview</a><a href="hardware.html">Hardware</a><a href="stream.html">Live stream</a><a href="sound.html">Bird sounds</a><a href="detection.html">Detection</a><a href="homeassistant.html">Home Assistant</a><a href="results.html" aria-current="page">Results</a></nav></div></header>
+<main><div class="wrap">
+
+<h1>Results</h1>
+<p class="lead">The box went up in October 2026, so the honest summary is: the technology works, the birds have not moved in yet.</p>
+<h2>What works</h2>
+<ul>
+<li>Camera and IR light give a clear black-and-white picture of the inside of the box, day and night.</li>
+<li>The Pi stays around 50&nbsp;°C in continuous operation and does not throttle.</li>
+<li>BirdNET-Pi names wild birds around the house from the first day.</li>
+<li>A finger held in front of the lens triggers the push message, switches "bird present" on, and after the timeout off again.</li>
+<li>The live picture runs on iPhone and Apple TV through HomeKit.</li>
+</ul>
+<h2>What is not proven yet</h2>
+<ul>
+<li>Real birds in the box. The detection thresholds are first guesses.</li>
+<li>How often the model alone recognises a bird at the top edge of the picture.</li>
+<li>How warm the IR module gets in summer.</li>
+</ul>
+<h2>Lessons so far</h2>
+<ul>
+<li><strong>Motion is a better signal than the model</strong> when the animal is only partly in view. Combine both.</li>
+<li><strong>Use a high-endurance SD card.</strong> The Pi writes pictures and logs all day.</li>
+<li><strong>Back up the card as an image</strong> before changing anything big (<code>dd</code> on a Mac or Linux machine works well and needs no extra software), and keep the old card as a spare.</li>
+<li><strong>Keep secrets out of scripts.</strong> Webhook address in a service drop-in, passwords changed on the Pi and in BirdNET-Pi.</li>
+<li><strong>Start every library with its telemetry off.</strong></li>
+</ul>
+<h2>Next steps</h2>
+<ol>
+<li>Let it run over the winter and collect pictures (they are labelled <code>bird</code> and <code>nobird</code>).</li>
+<li>In spring: tune the thresholds and the "empty after" time (300 seconds is a likely candidate), and review false alarms.</li>
+<li>If the model misses too many birds, retrain it with my own pictures, labelled locally on a computer, without any cloud service.</li>
+<li>Watch the IR module's temperature in summer.</li>
+<li>Maybe: the frogs in the garden pond, and an ultrasound microphone for bats.</li>
+</ol>
+<figure><div class="ph" role="img" aria-label="Photo placeholder: First real visitor">Photo to come: First real visitor</div><figcaption>Space for the first real visitor.</figcaption></figure>
+
+<div class="pager"><a href="homeassistant.html">&larr; Home Assistant</a><span></span></div>
+</div></main>
+<footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: [contact e-mail to be added]</div></footer>
+</body>
+</html>

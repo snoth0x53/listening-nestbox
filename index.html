@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Overview · The Listening Nest Box</title>
+<meta name="description" content="A tit nest box with infrared camera, bird-song recognition and Home Assistant alerts, built on a Raspberry Pi 5.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><div class="wrap"><a class="brand" href="index.html">The Listening Nest Box</a><nav aria-label="Pages"><a href="index.html" aria-current="page">Overview</a><a href="hardware.html">Hardware</a><a href="stream.html">Live stream</a><a href="sound.html">Bird sounds</a><a href="detection.html">Detection</a><a href="homeassistant.html">Home Assistant</a><a href="results.html">Results</a></nav></div></header>
+<main><div class="wrap">
+
+<h1>The Listening Nest Box</h1>
+<p class="lead">A camera and a microphone in an ordinary tit nest box, a Raspberry Pi 5 that watches both, and a phone that buzzes when somebody moves in. Everything runs at home, nothing is sent to the cloud.</p>
+<figure><img src="img/nestbox.jpg" alt="A red nest box with a blue roof on a wooden post outside, partly hidden behind a railing and fig leaves" loading="lazy" style="max-height:560px;width:auto;margin:0 auto;display:block"><figcaption>The finished nest box, mounted outside.</figcaption></figure>
+<h2>What it does</h2>
+<ul>
+<li><strong>Sees</strong> into the box with an infrared-sensitive camera and a small IR light, day and night.</li>
+<li><strong>Listens</strong> outside with a USB microphone and names the birds that sing nearby (BirdNET-Pi).</li>
+<li><strong>Notices</strong> movement in the box, checks it with a small object-detection model and tells Home Assistant.</li>
+<li><strong>Tells me</strong> with a push message on the phone, a "bird present" tile on the dashboard, and a live picture on iPhone and Apple TV.</li>
+</ul>
+<div class="note"><strong>Status:</strong> installed in October 2026 and running through the winter. Real nesting results will follow in spring, so the <a href="results.html">results page</a> is honest about being short for now.</div>
+<h2>How the pieces fit</h2>
+<pre><code>camera + IR light (inside the box)
+        |
+   Raspberry Pi 5  --  USB microphone (outside)
+        |   \
+        |    +-- BirdNET-Pi: bird songs, web interface
+        |
+   MediaMTX  -- RTSP / WebRTC stream
+        |
+        +-- watch.py: motion -> bird check -> webhook
+        |                                  |
+        |                           Home Assistant
+        |                            |        |
+        |                   push message   dashboard tile
+        |
+   Home Assistant camera -> HomeKit -> iPhone / Apple TV</code></pre>
+<h2>Read on</h2>
+<div class="cards">
+<a class="card" href="hardware.html"><strong>Hardware</strong><span>Parts, wiring, the IR light, the box.</span></a>
+<a class="card" href="stream.html"><strong>Live stream</strong><span>Camera to RTSP and WebRTC with MediaMTX.</span></a>
+<a class="card" href="sound.html"><strong>Bird sounds</strong><span>BirdNET-Pi and the outdoor microphone.</span></a>
+<a class="card" href="detection.html"><strong>Detection</strong><span>The full watch script and how it decides.</span></a>
+<a class="card" href="homeassistant.html"><strong>Home Assistant</strong><span>Push, dashboard tile, live picture on Apple TV.</span></a>
+<a class="card" href="results.html"><strong>Results</strong><span>What worked, what did not, what comes next.</span></a>
+</div>
+<h2>Principles</h2>
+<ul>
+<li><strong>Local only.</strong> The stream stays in the home network, recordings are not uploaded anywhere.</li>
+<li><strong>No usage data.</strong> Every library that can phone home is switched off (see <a href="detection.html">Detection</a>).</li>
+<li><strong>Disturb the birds as little as possible.</strong> The IR light is invisible to birds at 850 nm; still, check the local rules for watching nesting birds and keep the box closed during breeding.</li>
+</ul>
+
+<div class="pager"><span></span><a href="hardware.html">Hardware &rarr;</a></div>
+</div></main>
+<footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: [contact e-mail to be added]</div></footer>
+</body>
+</html>

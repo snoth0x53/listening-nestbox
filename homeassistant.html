@@ -30,7 +30,7 @@
 <p>Expected: <code>200</code>. The automation's <strong>Traces</strong> show what arrived.</p>
 <h2>3. The dashboard tile</h2>
 <p>A tile card for <code>input_boolean.bird_present</code>, name "Bird present", bird icon, with a <strong>visibility</strong> condition "state is on". The tile appears only while somebody is in the box.</p>
-<figure><div class="ph" role="img" aria-label="Photo placeholder: Dashboard with the Bird present tile">Photo to come: Dashboard with the Bird present tile</div><figcaption>The tile on the dashboard while the box is occupied.</figcaption></figure>
+<figure><img src="img/dashboard-tile.png" alt="Dashboard tile showing a bird present" loading="lazy" style="max-height:560px;width:auto;max-width:100%;margin:0 auto;display:block"><figcaption>The tile on the dashboard while the box is occupied. The tile is named "Vogel anwesend" (German for "bird present") in my setup.</figcaption></figure>
 <h2>4. Push notifications</h2>
 <p>Install the Home Assistant companion app on the phone. A focus mode such as "Sleep" silences the push; allow the Home Assistant app in that focus if you want notifications at night.</p>
 <h2>5. Live picture on iPhone and Apple TV</h2>
@@ -42,7 +42,7 @@
 <li><strong>Apple TV:</strong> Home app → Cameras → Nest box.</li>
 </ol>
 <div class="note warn"><strong>Pitfall:</strong> do not tick several domains. A bridge with many domains exposes dozens of devices (78 in my case). Never pair that one; delete it under Devices &amp; services → HomeKit Bridge → ⋮ → Delete. Leave any existing HomeKit entries alone.</div>
-<figure><img src="img/home-app.jpg" alt="Screenshot of the Home app on an iPhone: the Cameras section shows the live infrared picture from inside the nest box" loading="lazy" style="max-height:560px;width:auto;margin:0 auto;display:block"><figcaption>The nest box camera in the Home app on the iPhone (the Apple TV shows the same picture). The small label shows the age of the frame in seconds.</figcaption></figure>
+<figure><img src="img/home-app.jpg" alt="Screenshot of the Home app on an iPhone: the Cameras section shows the live infrared picture from inside the nest box" loading="lazy" style="max-height:560px;width:auto;max-width:100%;margin:0 auto;display:block"><figcaption>The nest box camera in the Home app on the iPhone (the Apple TV shows the same picture). The small label shows the age of the frame in seconds.</figcaption></figure>
 <p>If the picture hangs, check the stream first (<code>systemctl is-active mediamtx</code>), then close and reopen the Home app on the Apple TV.</p>
 
 <div class="pager"><a href="detection.html">&larr; Detection</a><a href="results.html">Results &rarr;</a></div>

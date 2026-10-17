@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Nest box watch: motion -> bird check -> message to Home Assistant."""
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 snoth0x53
 import os
 import threading
 import time

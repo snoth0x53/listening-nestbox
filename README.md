@@ -34,6 +34,12 @@ then open http://localhost:8000.
 - Keep the Home Assistant webhook address secret (put it in a service drop-in file, never in the script).
 - Mains voltage outdoors belongs in the hands of a qualified electrician.
 
+## Licence
+
+- **Code and configuration** (`watch.py` and the snippets on the pages): MIT licence, see `LICENSE`. Use, change and share freely.
+- **Texts and photos:** copyright 2026 snoth0x53, all rights reserved. Please do not copy them. You are very welcome to build the project yourself and to link to the page.
+- Software used keeps its own licences: BirdNET-Pi (Nachtzuster fork) and the BirdNET models, Ultralytics YOLOv8, MediaMTX, Home Assistant. Check them before any commercial use.
+
 ## Contact
 
 birdsarentreal@mailbox.org

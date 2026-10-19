@@ -42,3 +42,19 @@ footer.site a.egg:hover,footer.site a.egg:focus{text-decoration:underline}
 
 audio{display:block;width:100%;max-width:560px;margin:0 auto 1.6em}
 .audio-label{text-align:center;margin-bottom:.4em}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:1.4em 0}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.tile strong{display:block;font-size:1.5rem;line-height:1.25;color:var(--fg)}
+.tile span{font-size:.85em;color:var(--muted)}
+.chartwrap{overflow-x:auto;margin:.6em 0 1.4em}
+svg.chart{display:block;width:100%;min-width:560px;height:auto;background:var(--card);border:1px solid var(--line);border-radius:10px}
+svg .grid{stroke:var(--line);stroke-width:1}
+svg .row{stroke:var(--line);stroke-width:1;stroke-dasharray:1 5;opacity:.8}
+svg .ax{fill:var(--muted);font-size:12px;font-family:system-ui,sans-serif}
+svg .cnt{fill:var(--fg);font-size:13px;font-weight:600;font-family:system-ui,sans-serif}
+svg .dot{fill:var(--accent);stroke:var(--card);stroke-width:2}
+svg .bar{fill:var(--accent)}
+svg .alarm{stroke:var(--muted);stroke-width:2;stroke-linecap:round;fill:none}
+.legend{font-size:.9em;color:var(--muted);margin:-.3em 0 .6em}
+.legend svg{vertical-align:-2px}

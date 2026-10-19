@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="site"><div class="wrap"><a class="brand" href="index.html">The Listening Nest Box</a><nav aria-label="Pages"><a href="index.html">Overview</a><a href="hardware.html">Hardware</a><a href="stream.html">Live stream</a><a href="sound.html">Bird sounds</a><a href="detection.html">Detection</a><a href="homeassistant.html">Home Assistant</a><a href="results.html" aria-current="page">Results</a></nav></div></header>
+<header class="site"><div class="wrap"><a class="brand" href="index.html">The Listening Nest Box</a><nav aria-label="Pages"><a href="index.html">Overview</a><a href="hardware.html">Hardware</a><a href="stream.html">Live stream</a><a href="sound.html">Bird sounds</a><a href="detection.html">Detection</a><a href="homeassistant.html">Home Assistant</a><a href="results.html" aria-current="page">Results</a><a href="visits.html">Visits</a></nav></div></header>
 <main><div class="wrap">
 
 <h1>Results</h1>
@@ -24,7 +24,7 @@
 </ul>
 <h2>What is not proven yet</h2>
 <ul>
-<li>Regular visits and nesting. One visitor has been seen so far; the detection thresholds are first guesses.</li>
+<li>Regular visits and nesting. Tits have looked in several times since October (see <a href="visits.html">Visits</a>), but none has stayed yet; the detection thresholds are first guesses.</li>
 <li>How often the model alone recognises a bird at the top edge of the picture.</li>
 <li>How warm the IR module gets in summer, and how warm it gets in the closed enclosure with the Pi.</li>
 </ul>
@@ -65,7 +65,7 @@
 <p>Not every alarm is a bird. On the same afternoon the motion check fired again at 15:56, and the picture shows why: sunlight comes through the entrance hole and paints an orange patch on the wall, with a bright reflection at the top edge. The model found no bird (score 0.00), which is correct. The patch moves with the sun and changes the picture just like an animal would. In spring I will look at filters for this, for example ignoring bright patches that have no dark shape.</p>
 <figure><img src="img/false-alarm-sun.jpg" alt="Picture from inside the empty nest box: an orange oval patch of sunlight on the right wall and a bright reflection at the top edge" loading="lazy" style="max-height:560px;width:auto;max-width:100%;margin:0 auto;display:block"><figcaption>A patch of sunlight on the wall. Motion alarm, model score: 0.00.</figcaption></figure>
 
-<div class="pager"><a href="homeassistant.html">&larr; Home Assistant</a><span></span></div>
+<div class="pager"><a href="homeassistant.html">&larr; Home Assistant</a><a href="visits.html">Visits &rarr;</a></div>
 </div></main>
 <footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: <a href="mailto:birdsarentreal@mailbox.org">birdsarentreal@mailbox.org</a><br>Code: MIT licence. Texts and photos &copy; 2026 snoth0x53, all rights reserved. Building it yourself is welcome.<br><a href="404.html" class="egg">Birds aren't real.</a> This box is just checking.</div></footer>
 </body>

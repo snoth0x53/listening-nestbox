@@ -17,13 +17,13 @@
 <h2>How it decides</h2>
 <ol>
 <li><strong>Motion.</strong> The picture is shrunk and blurred, compared to a slowly moving background, and counts as "motion" when about 1 % of the pixels change noticeably.</li>
-<li><strong>Bird check.</strong> While there is motion, a YOLOv8n model (COCO class 14, "bird") looks at the full frame about once a second.</li>
+<li><strong>Bird check.</strong> While there is motion, a YOLOv8n model (COCO class 14, &quot;bird&quot;) looks about once a second at the whole picture and, separately, at the top 40 % of it, both at 1280 pixels. Frames smaller than 40 pixels are ignored (see <a href="#changes">What changed</a>).</li>
 <li><strong>Messages.</strong> <code>motion</code> at most once per minute. <code>occupied</code> after three hits within 20 seconds. <code>empty</code> after 90 seconds without a hit.</li>
 <li><strong>Pictures.</strong> At most one picture every 3 seconds is saved, labelled <code>bird</code> or <code>nobird</code>, the last 1500 are kept.</li>
 </ol>
 <h2>Why motion counts as a hit</h2>
 <p>In a real box a bird is often visible only as a beak or head at the top edge of the picture, and a general-purpose model misses that much of the time. The camera sits inside the box, so movement there is almost always a bird. The script therefore counts <em>either</em> a model hit <em>or</em> motion (<code>MODE = "both"</code>). While the box is occupied, the model keeps checking every 5 seconds, so a bird sitting still keeps the status. The mode can be set to <code>"model"</code> or <code>"motion"</code> at the top of the script.</p>
-<div class="note warn"><strong>Expect false alarms:</strong> insects, spiders, light changes and anything that moves in front of the lens count as motion. That is a deliberate trade-off for not missing birds; thresholds will be tuned with real data in spring.</div>
+<div class="note warn"><strong>Expect false alarms:</strong> insects, spiders, light changes and anything that moves in front of the lens count as motion. That is a deliberate trade-off for not missing birds. The thresholds are being tuned with real data, see <a href="#changes">What changed</a> below.</div>
 <h2>No usage data</h2>
 <p>Libraries like Ultralytics can send usage statistics. The script switches this off in code (<code>settings.update({"sync": False})</code>). It is also worth turning off once in the shell, including the optional integrations:</p>
 <pre><code>yolo settings sync=False clearml=False comet=False dvc=False mlflow=False raytune=False</code></pre>
@@ -59,9 +59,12 @@ HA_WEBHOOK = os.environ.get(&quot;HA_WEBHOOK&quot;, &quot;&quot;)  # e.g. http:/
 MODE = &quot;both&quot;             # what counts as a hit for &quot;occupied&quot;: &quot;model&quot;, &quot;motion&quot; or &quot;both&quot;
 MOTION_FRAC = 0.01        # share of changed pixels that counts as motion
 PIXEL_DIFF = 25           # brightness difference per pixel
-BIRD_CONF = 0.15          # minimum confidence for &quot;bird&quot;
+BIRD_CONF = 0.13          # minimum confidence for &quot;bird&quot;
 MIN_CONF = 0.05           # below this nothing is shown at all
-CHECK_IMGSZ = 640         # image size for the bird check
+CHECK_IMGSZ = 1280        # image size for the bird check (whole picture)
+TOP_STRIP = 0.40          # top share of the picture that is also checked on its own (0 = off)
+STRIP_IMGSZ = 1280        # image size for that top strip
+MIN_BOX = 40              # ignore frames whose shorter side is below this many pixels (dust speck)
 HITS_NEEDED = 3           # this many hits ...
 HIT_WINDOW = 20           # ... within this many seconds = occupied
 EMPTY_AFTER = 90          # seconds without a hit = empty
@@ -129,9 +132,17 @@ def main():
     model = YOLO(&quot;yolov8n.pt&quot;)
     log(f&quot;Mode: {MODE}&quot;)
 
+    def detect(img, imgsz):
+        res = model(img, imgsz=imgsz, conf=MIN_CONF, classes=[BIRD_CLASS], verbose=False)[0]
+        boxes = [(*b.xyxy[0].tolist(), float(b.conf[0])) for b in res.boxes]
+        return [b for b in boxes if min(b[2] - b[0], b[3] - b[1]) &gt;= MIN_BOX]
+
     def find_birds(frame):
-        res = model(frame, imgsz=CHECK_IMGSZ, conf=MIN_CONF, classes=[BIRD_CLASS], verbose=False)[0]
-        return [(*b.xyxy[0].tolist(), float(b.conf[0])) for b in res.boxes]
+        boxes = detect(frame, CHECK_IMGSZ)
+        if TOP_STRIP &gt; 0:
+            h = frame.shape[0]
+            boxes += detect(frame[: int(h * TOP_STRIP)], STRIP_IMGSZ)
+        return boxes
 
     bg = None
     warmup = 30
@@ -225,7 +236,17 @@ journalctl -u nestbox-watch -b --no-pager | tail -n 20</code></pre>
 <h2>Reading the log</h2>
 <pre><code>journalctl -u nestbox-watch --since today --no-pager | grep -E "MOTION|Bird detected|OCCUPIED|EMPTY"</code></pre>
 <p>The script only logs when something happens, so "no entries" means "quiet", not "dead". Use <code>systemctl is-active nestbox-watch</code> to check the service itself. If the Pi's clock lags after boot, use <code>-b</code> (this boot) instead of <code>--since today</code>.</p>
-<figure><img src="img/detection-box.jpg" alt="Black-and-white infrared picture from inside the nest box: a tit&#x27;s head and beak reach into the picture at the top edge, surrounded by a green detection box" loading="lazy" style="max-height:560px;width:auto;max-width:100%;margin:0 auto;display:block"><figcaption>A saved picture with the model's detection box. The green frame marks what the model found, and the small number at its top edge is the confidence: 0.09. That is below the 0.15 threshold, so the picture was saved as <code>nobird</code> although a tit is clearly there. The alert came from the motion check.</figcaption></figure>
+<figure><img src="img/detection-box.jpg" alt="Black-and-white infrared picture from inside the nest box: a tit&#x27;s head and beak reach into the picture at the top edge, surrounded by a green detection box" loading="lazy" style="max-height:560px;width:auto;max-width:100%;margin:0 auto;display:block"><figcaption>A saved picture with the model's detection box. The green frame marks what the model found, and the small number at its top edge is the confidence: 0.09. That is below the 0.15 threshold the script had at the time, so the picture was saved as <code>nobird</code> although a tit is clearly there. The alert came from the motion check.</figcaption></figure>
+<h2 id="changes">What changed since the first version</h2>
+<p>The script on this page is the current one. These are the changes since the first version, in the order they happened, and why.</p>
+<h3>12 to 19 October: the first version</h3>
+<p>The whole picture was checked at 640 pixels, and a score of 0.15 or more counted as a bird. In practice the model saw almost nothing: a tit that shows only its head and beak at the top edge scored between 0.00 and 0.09. The alerts all came from the motion check, and all pictures were saved as <code>nobird</code>.</p>
+<h3>22 October: a sharper look</h3>
+<p>I tested several variants on 24 saved pictures: the whole picture at 640 and at 1280 pixels, the top strip alone at 960 and 1280 pixels, and the same with more contrast. The old 640 check found a bird in none of the 22 pictures that were not marked as false alarms. The whole picture at 1280 pixels found 12 and the top strip at 1280 pixels found 7, at a threshold of 0.08. More contrast did not help. The script then used both 1280 checks and a threshold of 0.13. The price is about four times the computation per check, which the Pi 5 handles without a change in temperature so far.</p>
+<h3>26 October: the dust speck</h3>
+<p>On 26 October the sun shone through the entrance hole, the motion check fired, and the box was reported as occupied for about four minutes with nobody inside. The reason was a small dark speck on the right wall, about 20 pixels wide, which the sharper check took for a bird (scores 0.13 to 0.18). My first test had not shown this, because it only looked at the highest score per picture and could not tell a bird from a speck. A tit in this picture is about 100 pixels or more across, so the script now ignores detections whose shorter side is below 40 pixels. Raising the threshold instead would have been worse: the speck reached 0.18, a faint real bird only 0.13. A second test on 45 pictures, with this filter, gave: old 640 check 1 of 30, whole picture at 1280 pixels 5 of 30, top strip at 1280 pixels 8 of 30, and no false alarm among 15 pictures without a bird. The pictures are on the <a href="visits.html">Visits</a> page.</p>
+<h3>What is still open</h3>
+<p>The tests ran on saved pictures, and on those the green frames are already painted in, which changes the scores. They tend to underestimate the live scores. There are also only about 15 pictures without a bird, mostly from the same scene. Shadows, leaves or other reflections at the entrance have not been tested. I will keep watching the log and change the script when something new turns up.</p>
 
 <div class="pager"><a href="sound.html">&larr; Bird sounds</a><a href="homeassistant.html">Home Assistant &rarr;</a></div>
 </div></main>

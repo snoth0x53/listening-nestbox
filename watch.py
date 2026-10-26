@@ -22,9 +22,12 @@ HA_WEBHOOK = os.environ.get("HA_WEBHOOK", "")  # e.g. http://<home-assistant>:81
 MODE = "both"             # what counts as a hit for "occupied": "model", "motion" or "both"
 MOTION_FRAC = 0.01        # share of changed pixels that counts as motion
 PIXEL_DIFF = 25           # brightness difference per pixel
-BIRD_CONF = 0.15          # minimum confidence for "bird"
+BIRD_CONF = 0.13          # minimum confidence for "bird"
 MIN_CONF = 0.05           # below this nothing is shown at all
-CHECK_IMGSZ = 640         # image size for the bird check
+CHECK_IMGSZ = 1280        # image size for the bird check (whole picture)
+TOP_STRIP = 0.40          # top share of the picture that is also checked on its own (0 = off)
+STRIP_IMGSZ = 1280        # image size for that top strip
+MIN_BOX = 40              # ignore frames whose shorter side is below this many pixels (dust speck)
 HITS_NEEDED = 3           # this many hits ...
 HIT_WINDOW = 20           # ... within this many seconds = occupied
 EMPTY_AFTER = 90          # seconds without a hit = empty
@@ -92,9 +95,17 @@ def main():
     model = YOLO("yolov8n.pt")
     log(f"Mode: {MODE}")
 
+    def detect(img, imgsz):
+        res = model(img, imgsz=imgsz, conf=MIN_CONF, classes=[BIRD_CLASS], verbose=False)[0]
+        boxes = [(*b.xyxy[0].tolist(), float(b.conf[0])) for b in res.boxes]
+        return [b for b in boxes if min(b[2] - b[0], b[3] - b[1]) >= MIN_BOX]
+
     def find_birds(frame):
-        res = model(frame, imgsz=CHECK_IMGSZ, conf=MIN_CONF, classes=[BIRD_CLASS], verbose=False)[0]
-        return [(*b.xyxy[0].tolist(), float(b.conf[0])) for b in res.boxes]
+        boxes = detect(frame, CHECK_IMGSZ)
+        if TOP_STRIP > 0:
+            h = frame.shape[0]
+            boxes += detect(frame[: int(h * TOP_STRIP)], STRIP_IMGSZ)
+        return boxes
 
     bg = None
     warmup = 30

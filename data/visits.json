@@ -1,0 +1,89 @@
+{
+ "updated": "2026-10-27",
+ "events": [
+  {
+   "date": "2026-10-12",
+   "time": "12:44",
+   "kind": "visit",
+   "note": "Looked in several times within three minutes."
+  },
+  {
+   "date": "2026-10-17",
+   "time": "13:22",
+   "kind": "visit",
+   "note": "Looked in. Only head and beak reach into the picture."
+  },
+  {
+   "date": "2026-10-17",
+   "time": "13:48",
+   "kind": "visit",
+   "note": "Looked in again."
+  },
+  {
+   "date": "2026-10-17",
+   "time": "15:56",
+   "kind": "alarm",
+   "note": "False alarm: a patch of sunlight on the wall."
+  },
+  {
+   "date": "2026-10-19",
+   "time": "12:22",
+   "kind": "visit",
+   "note": "Counted as occupied for about a minute and a half."
+  },
+  {
+   "date": "2026-10-19",
+   "time": "12:25",
+   "kind": "visit",
+   "note": "Another visit, counted as occupied for about a minute and a half."
+  },
+  {
+   "date": "2026-10-19",
+   "time": "12:39",
+   "kind": "visit",
+   "note": "A short look."
+  },
+  {
+   "date": "2026-10-22",
+   "time": "10:24",
+   "kind": "visit",
+   "note": "Counted as occupied for about three minutes."
+  },
+  {
+   "date": "2026-10-22",
+   "time": "10:26",
+   "kind": "visit",
+   "note": "Moved again while still inside."
+  },
+  {
+   "date": "2026-10-22",
+   "time": "12:44",
+   "kind": "visit",
+   "note": "Counted as occupied for about a minute and a half."
+  },
+  {
+   "date": "2026-10-25",
+   "time": "14:45",
+   "kind": "alarm",
+   "note": "False alarm: sunlight at the entrance."
+  },
+  {
+   "date": "2026-10-26",
+   "time": "10:15",
+   "kind": "visit",
+   "note": "Stayed inside for about three minutes."
+  },
+  {
+   "date": "2026-10-26",
+   "time": "13:49",
+   "kind": "alarm",
+   "note": "False alarm: sunlight at the entrance and a dust speck the model took for a bird."
+  },
+  {
+   "date": "2026-10-27",
+   "time": "09:33",
+   "kind": "visit",
+   "note": "A short look. Only head and beak reach into the picture."
+  }
+ ]
+}

@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-27",
+ "updated": "2026-10-28",
  "events": [
   {
    "date": "2026-10-12",
@@ -84,6 +84,18 @@
    "time": "09:33",
    "kind": "visit",
    "note": "A short look. Only head and beak reach into the picture."
+  },
+  {
+   "date": "2026-10-28",
+   "time": "08:52",
+   "kind": "visit",
+   "note": "Stayed inside for about a minute and a half. The model followed it in 11 of 17 pictures."
+  },
+  {
+   "date": "2026-10-28",
+   "time": "10:51",
+   "kind": "visit",
+   "note": "A short look. Head and beak at the entrance."
   }
  ]
 }

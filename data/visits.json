@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-28",
+ "updated": "2026-11-08",
  "events": [
   {
    "date": "2026-10-12",
@@ -96,6 +96,30 @@
    "time": "10:51",
    "kind": "visit",
    "note": "A short look. Head and beak at the entrance."
+  },
+  {
+   "date": "2026-11-04",
+   "time": "10:01",
+   "kind": "visit",
+   "note": "A short look. Head and beak at the entrance."
+  },
+  {
+   "date": "2026-11-04",
+   "time": "10:43",
+   "kind": "visit",
+   "note": "Looked in again. Head and beak at the entrance, model score up to 0.65."
+  },
+  {
+   "date": "2026-11-05",
+   "time": "08:14",
+   "kind": "visit",
+   "note": "Hung in the entrance for about 50 seconds. Counted as occupied."
+  },
+  {
+   "date": "2026-11-08",
+   "time": "12:11",
+   "kind": "visit",
+   "note": "Stayed inside for about 45 seconds. Model scores up to 0.85."
   }
  ]
 }

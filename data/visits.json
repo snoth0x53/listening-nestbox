@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-08",
+ "updated": "2026-11-11",
  "events": [
   {
    "date": "2026-10-12",
@@ -120,6 +120,24 @@
    "time": "12:11",
    "kind": "visit",
    "note": "Stayed inside for about 45 seconds. Model scores up to 0.85."
+  },
+  {
+   "date": "2026-11-11",
+   "time": "10:07",
+   "kind": "visit",
+   "note": "Stayed for about 25 seconds, first at the entrance, then on the floor. Model scores up to 0.42."
+  },
+  {
+   "date": "2026-11-11",
+   "time": "11:09",
+   "kind": "visit",
+   "note": "Stayed inside for almost two minutes, after a first short look at 11:08. Model scores up to 0.56."
+  },
+  {
+   "date": "2026-11-11",
+   "time": "11:13",
+   "kind": "visit",
+   "note": "Came back right after and stayed for about a minute. Model scores up to 0.59."
   }
  ]
 }

@@ -1,6 +1,6 @@
 # The Listening Nest Box
 
-A camera and a microphone in an ordinary tit nest box, a Raspberry Pi 5 that watches both, and a phone that buzzes when somebody moves in. Everything runs at home, nothing is sent to the cloud.
+A camera and a microphone in an ordinary tit nest box, a Raspberry Pi 5 that watches both, and a phone that buzzes when somebody moves in. Everything runs at home. The only thing that leaves the house is one picture per visit, published by the box itself, and that can be switched off in a single line.
 
 **Read the project page:** https://snoth0x53.github.io/listening-nestbox/
 
@@ -8,8 +8,9 @@ A camera and a microphone in an ordinary tit nest box, a Raspberry Pi 5 that wat
 
 - **Sees** into the box with an infrared-sensitive camera (Camera Module 3 Wide NoIR) and a small 850 nm IR light.
 - **Listens** outside with a USB microphone and names the birds that sing nearby ([BirdNET-Pi](https://github.com/Nachtzuster/BirdNET-Pi)).
-- **Notices** movement in the box, checks it with a small object-detection model (YOLOv8n) and tells Home Assistant.
+- **Notices** movement in the box, checks it with a small object-detection model (YOLOv8n, since November retrained on pictures from this box) and tells Home Assistant.
 - **Tells me** with a push message, a "bird present" tile on the dashboard and a live picture on iPhone and Apple TV.
+- **Files a report** after each visit on Mastodon ([@Nest_Box_incident_Desk](https://mastodon.social/@Nest_Box_incident_Desk)). Optional: `MASTODON = False` in `watch.py` and nothing is published.
 
 ## What is in this repository
 

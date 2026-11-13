@@ -51,6 +51,8 @@ TMPDIR=~/tmp ~/nestbox/venv/bin/pip install --no-cache-dir ultralytics opencv-py
 <h2 id="posts">The reports</h2>
 <p>When a visit ends, the box picks the picture with the highest score from that visit, the copy without the green frame, and publishes it with a short caption. The captions are picked at random from a handful of templates, in the same deadpan register as the <a href="results.html">field guide</a>. Date, time and duration are filled in. Nothing else about the visit leaves the Pi, and the pictures carry no metadata at all.</p>
 <p>It posts at most once per visit, with a ten minute gap, and only when the model actually saw a bird. A false alarm never becomes a post.</p>
+<p><strong>Rebuilding this without the posting part takes one line.</strong> In the settings block at the top of the script, in the section marked <em>Mastodon</em>, set <code>MASTODON = False</code>. Nothing else needs changing: the box keeps watching, keeps telling Home Assistant and keeps its pictures to itself.</p>
+<div class="note warn"><strong>Think before switching it on.</strong> Once it posts, the pictures are public. If you open the box while the service is running, your hand or your face may well end up in one. Switch the posting off, or stop the service altogether, before you touch the box.</div>
 <h2>The script</h2>
 <p>This is the whole thing, as it runs now. Only the caption templates are shortened to one example each, so the reports keep their element of surprise.</p>
 <pre><code>#!/usr/bin/env python3
@@ -102,8 +104,10 @@ MODEL_PATH = str(Path.home() / &quot;nestbox&quot; / &quot;nestbox-model.pt&quot
 BIRD_CLASS = 0            # own model: class 0 = &quot;bird&quot; (general COCO model: 14)
 
 # Mastodon: one post per visit, triggered when the box turns empty.
+# Rebuilding this and want to keep everything at home? Set MASTODON = False.
+# Nothing else needs changing; the box then keeps its pictures to itself.
 # The token comes from the environment, never from this file.
-MASTODON = True
+MASTODON = True           # False = nothing is ever published
 MASTODON_SERVER = &quot;https://mastodon.social&quot;
 MASTODON_TOKEN = os.environ.get(&quot;MASTODON_TOKEN&quot;, &quot;&quot;)
 MASTODON_VISIBILITY = &quot;public&quot;

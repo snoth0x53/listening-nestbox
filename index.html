@@ -13,17 +13,18 @@
 <main><div class="wrap">
 
 <h1>The Listening Nest Box</h1>
-<p class="lead">A camera and a microphone in an ordinary tit nest box, a Raspberry Pi 5 that watches both, and a phone that buzzes when somebody moves in. Everything runs at home, nothing is sent to the cloud.</p>
+<p class="lead">A camera and a microphone in an ordinary tit nest box, a Raspberry Pi 5 that watches both, and a phone that buzzes when somebody moves in. Everything runs at home. The only thing that leaves the house is one picture per visit, which the box publishes itself, and that part can be switched off in a single line.</p>
 <p>This box has never received a firmware update from any agency. As far as we know.</p>
 <figure><img src="img/nestbox.jpg" alt="A red nest box with a blue roof on a wooden post outside, partly hidden behind a railing and fig leaves" loading="lazy" style="max-height:560px;width:auto;max-width:100%;margin:0 auto;display:block"><figcaption>The finished nest box, mounted outside.</figcaption></figure>
 <h2>What it does</h2>
 <ul>
 <li><strong>Sees</strong> into the box with an infrared-sensitive camera and a small IR light, day and night.</li>
 <li><strong>Listens</strong> outside with a USB microphone and names the birds that sing nearby (BirdNET-Pi).</li>
-<li><strong>Notices</strong> movement in the box, checks it with a small object-detection model and tells Home Assistant.</li>
+<li><strong>Notices</strong> movement in the box, checks it with an object-detection model trained on its own visitors, and tells Home Assistant.</li>
 <li><strong>Tells me</strong> with a push message on the phone, a "bird present" tile on the dashboard, and a live picture on iPhone and Apple TV.</li>
+<li><strong>Files a report</strong> after each visit: the best picture of that visit with a short caption, on <a rel="me" href="https://mastodon.social/@Nest_Box_incident_Desk">Mastodon</a>. That is the only thing that goes out, the pictures carry no metadata, and anyone rebuilding this can leave it switched off. See <a href="detection.html#posts">The reports</a>.</li>
 </ul>
-<div class="note"><strong>Status:</strong> installed in October 2026 and running through the winter. Real nesting results will follow in spring, so the <a href="results.html">results page</a> is honest about being short for now.</div>
+<div class="note"><strong>Status:</strong> installed in October 2026 and running through the winter. Since November the box uses a detection model trained on its own visitors, see <a href="detection.html#own-model">Detection</a>. Real nesting results will follow in spring, so the <a href="results.html">results page</a> is honest about being short for now.</div>
 <h2>How the pieces fit</h2>
 <pre><code>camera + IR light (inside the box)
         |
@@ -33,7 +34,7 @@
         |
    MediaMTX  -- RTSP / WebRTC stream
         |
-        +-- watch.py: motion -> bird check -> webhook
+        +-- watch.py: motion -> bird check -> webhook + report
         |                                  |
         |                           Home Assistant
         |                            |        |

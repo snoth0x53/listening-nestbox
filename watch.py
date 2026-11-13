@@ -47,8 +47,10 @@ MODEL_PATH = str(Path.home() / "nestbox" / "nestbox-model.pt")
 BIRD_CLASS = 0            # own model: class 0 = "bird" (general COCO model: 14)
 
 # Mastodon: one post per visit, triggered when the box turns empty.
+# Rebuilding this and want to keep everything at home? Set MASTODON = False.
+# Nothing else needs changing; the box then keeps its pictures to itself.
 # The token comes from the environment, never from this file.
-MASTODON = True
+MASTODON = True           # False = nothing is ever published
 MASTODON_SERVER = "https://mastodon.social"
 MASTODON_TOKEN = os.environ.get("MASTODON_TOKEN", "")
 MASTODON_VISIBILITY = "public"

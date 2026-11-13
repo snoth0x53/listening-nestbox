@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-11",
+ "updated": "2026-11-13",
  "events": [
   {
    "date": "2026-10-12",
@@ -138,6 +138,12 @@
    "time": "11:13",
    "kind": "visit",
    "note": "Came back right after and stayed for about a minute. Model scores up to 0.59."
+  },
+  {
+   "date": "2026-11-12",
+   "time": "12:33",
+   "kind": "visit",
+   "note": "About a minute inside the box, twelve model hits between 0.66 and 0.91. First visit published as a report."
   }
  ]
 }

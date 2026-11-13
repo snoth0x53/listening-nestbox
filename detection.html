@@ -16,30 +16,50 @@
 <p class="lead">One small Python script watches the stream, notices movement, asks an object-detection model whether a bird is in the picture and reports to Home Assistant.</p>
 <h2>How it decides</h2>
 <ol>
-<li><strong>Motion.</strong> The picture is shrunk and blurred, compared to a slowly moving background, and counts as "motion" when about 1 % of the pixels change noticeably.</li>
-<li><strong>Bird check.</strong> While there is motion, a YOLOv8n model (COCO class 14, &quot;bird&quot;) looks about once a second at the whole picture and, separately, at the top 40 % of it, both at 1280 pixels. Frames smaller than 40 pixels are ignored (see <a href="#changes">What changed</a>).</li>
-<li><strong>Messages.</strong> <code>motion</code> at most once per minute. <code>occupied</code> after three hits within 20 seconds. <code>empty</code> after 90 seconds without a hit.</li>
-<li><strong>Pictures.</strong> At most one picture every 3 seconds is saved, labelled <code>bird</code> or <code>nobird</code>, the last 1500 are kept.</li>
+<li><strong>Motion.</strong> The picture is shrunk and blurred, compared to a slowly moving background, and counts as "motion" when about 1&nbsp;% of the pixels change noticeably.</li>
+<li><strong>Bird check.</strong> While there is motion, a small YOLO model looks at the whole picture about once a second, at 1280 pixels. Since 11 November this is a model trained on pictures from this box (see <a href="#own-model">A model trained on the residents</a>); before that it was a general-purpose model. Anything scoring 0.30 or more counts as a bird. Frames smaller than 40 pixels are ignored (see <a href="#changes">What changed</a>).</li>
+<li><strong>Messages.</strong> <code>motion</code> at most once per minute. <code>occupied</code> after three hits within 20 seconds, and only if at least one of them came from the model. <code>empty</code> after 90 seconds without a hit.</li>
+<li><strong>Pictures.</strong> At most one picture every 3 seconds is saved, labelled <code>bird</code> or <code>nobird</code>, the last 1500 are kept. A second copy without the green frame goes into a separate folder, for the next round of training.</li>
+<li><strong>Post.</strong> When the box turns empty, the best picture of that visit is published as an incident report (see <a href="#posts">The reports</a>).</li>
 </ol>
-<h2>Why motion counts as a hit</h2>
-<p>In a real box a bird is often visible only as a beak or head at the top edge of the picture, and a general-purpose model misses that much of the time. The camera sits inside the box, so movement there is almost always a bird. The script therefore counts <em>either</em> a model hit <em>or</em> motion (<code>MODE = "both"</code>). While the box is occupied, the model keeps checking every 5 seconds, so a bird sitting still keeps the status. The mode can be set to <code>"model"</code> or <code>"motion"</code> at the top of the script.</p>
-<div class="note warn"><strong>Expect false alarms:</strong> insects, spiders, light changes and anything that moves in front of the lens count as motion. That is a deliberate trade-off for not missing birds. The thresholds are being tuned with real data, see <a href="#changes">What changed</a> below.</div>
+<h2>Why motion still counts</h2>
+<p>A bird in a real box is often visible only as a beak or a head at the top edge of the picture, and a general-purpose model misses that much of the time. The camera sits inside the box, so movement there is almost always a bird. The script therefore counts <em>either</em> a model hit <em>or</em> motion as a hit.</p>
+<p>That alone produced false alarms: insects at the lens, light changes, shadows at dusk. Since 28 October motion alone is no longer enough. Three hits still make a visit, but the box is only reported as occupied if the model confirmed a bird at least once within the same 20 seconds. Otherwise the decision is held back. In the weeks since, every held-back case turned out to be an insect or a change of light, and no real visit was lost: the model always caught up within a few seconds.</p>
+<div class="note"><strong>Why keep motion at all?</strong> It is the faster signal. The model needs a second or two to be sure, motion is there immediately, and it is what triggers the check in the first place.</div>
 <h2>No usage data</h2>
 <p>Libraries like Ultralytics can send usage statistics. The script switches this off in code (<code>settings.update({"sync": False})</code>). It is also worth turning off once in the shell, including the optional integrations:</p>
 <pre><code>yolo settings sync=False clearml=False comet=False dvc=False mlflow=False raytune=False</code></pre>
-<p>The model file <code>yolov8n.pt</code> is downloaded once and then runs locally.</p>
+<p>The model file is downloaded once, or trained locally, and then runs on the Pi. Nothing is sent anywhere.</p>
 <h2>Installation</h2>
 <pre><code>mkdir -p ~/nestbox ~/tmp
 python3 -m venv ~/nestbox/venv
 TMPDIR=~/tmp ~/nestbox/venv/bin/pip install --no-cache-dir ultralytics opencv-python-headless requests</code></pre>
 <p>Use <code>opencv-python-headless</code>, not <code>opencv-python</code>; the latter needs graphics libraries a headless Pi does not have. The <code>TMPDIR</code> trick is needed because <code>/tmp</code> is a small RAM disk on the Pi and large installs can fill it.</p>
+<h2 id="own-model">A model trained on the residents</h2>
+<p>Until 11 November the box used a general-purpose model, one that knows 80 everyday things, among them "bird". It is good at a pigeon on a lawn and poor at a tit seen from above, half cut off at the edge of a dark wooden box. On a set of 26 saved pictures that definitely show a bird, it found 9.</p>
+<p>So the box was taught to recognise its own visitors. 143 pictures from this box were sorted by hand, 95 with a bird and 48 without. Drawing the frames was quick, because the box never moves: the difference to an empty picture proposes a frame, and all that is left is to confirm or correct it.</p>
+<p>The split between training and testing was made by visit, not by picture. Pictures from the same visit look nearly identical, and having them on both sides would have made the result look far better than it is. 19 visits went into training, 11 were held back. Training ran on a laptop, about an hour, starting from the same small model as before.</p>
+<table>
+<tr><th>Threshold</th><th>General model</th><th>Own model</th></tr>
+<tr><td>0.10</td><td>10 of 26 birds, 0 false alarms</td><td>26 of 26, 0 false alarms</td></tr>
+<tr><td>0.13</td><td>9 of 26 birds, 0 false alarms</td><td>26 of 26, 0 false alarms</td></tr>
+<tr><td>0.25</td><td>5 of 26 birds, 0 false alarms</td><td>26 of 26, 0 false alarms</td></tr>
+</table>
+<p>On the held-back pictures the weakest real bird scored 0.45 and the strongest empty picture 0.03, with nothing in between. Hence the threshold of 0.30, with room on both sides. The pictures of insect shadows at night, the ones that caused the false alarms in October, all stayed at 0.03 or below.</p>
+<p>Two things got better that were not expected. The new model finds a bird seen from behind, a wing from above, even a few tail feathers at the bottom edge, all of which the old one missed completely. And it does so without the extra look at the top strip of the picture, which the old setup needed, so a check now takes 1.1 instead of 1.5 seconds on the Pi.</p>
+<div class="note warn"><strong>The catch:</strong> this model has only ever seen an empty box. Once there is nest material in it, the scene changes completely and it will have to be trained again. That is the price of a model that fits one box so well.</div>
+<h2 id="posts">The reports</h2>
+<p>When a visit ends, the box picks the picture with the highest score from that visit, the copy without the green frame, and publishes it with a short caption. The captions are picked at random from a handful of templates, in the same deadpan register as the <a href="results.html">field guide</a>. Date, time and duration are filled in. Nothing else about the visit leaves the Pi, and the pictures carry no metadata at all.</p>
+<p>It posts at most once per visit, with a ten minute gap, and only when the model actually saw a bird. A false alarm never becomes a post.</p>
 <h2>The script</h2>
-<p>Save as <code>~/nestbox/watch.py</code> (<a href="watch.py">download</a>):</p>
+<p>This is the whole thing, as it runs now.</p>
 <pre><code>#!/usr/bin/env python3
-&quot;&quot;&quot;Nest box watch: motion -&gt; bird check -&gt; message to Home Assistant.&quot;&quot;&quot;
+&quot;&quot;&quot;Nest box watch: motion -&gt; bird check -&gt; message to Home Assistant -&gt; post.&quot;&quot;&quot;
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 snoth0x53
 import os
+import random
+import sys
 import threading
 import time
 from datetime import datetime
@@ -59,12 +79,11 @@ HA_WEBHOOK = os.environ.get(&quot;HA_WEBHOOK&quot;, &quot;&quot;)  # e.g. http:/
 MODE = &quot;both&quot;             # what counts as a hit for &quot;occupied&quot;: &quot;model&quot;, &quot;motion&quot; or &quot;both&quot;
 MOTION_FRAC = 0.01        # share of changed pixels that counts as motion
 PIXEL_DIFF = 25           # brightness difference per pixel
-BIRD_CONF = 0.13          # minimum confidence for &quot;bird&quot;
+BIRD_CONF = 0.30          # minimum confidence for &quot;bird&quot;
 MIN_CONF = 0.05           # below this nothing is shown at all
-CHECK_IMGSZ = 1280        # image size for the bird check (whole picture)
-TOP_STRIP = 0.40          # top share of the picture that is also checked on its own (0 = off)
-STRIP_IMGSZ = 1280        # image size for that top strip
+CHECK_IMGSZ = 1280        # image size for the bird check
 MIN_BOX = 40              # ignore frames whose shorter side is below this many pixels (dust speck)
+MODEL_REQUIRED = True     # &quot;occupied&quot; only after at least one model hit
 HITS_NEEDED = 3           # this many hits ...
 HIT_WINDOW = 20           # ... within this many seconds = occupied
 EMPTY_AFTER = 90          # seconds without a hit = empty
@@ -74,10 +93,57 @@ MOTION_NOTIFY_EVERY = 60  # seconds between two motion messages
 SNAP_EVERY = 3            # seconds between two saved pictures
 SNAP_DIR = Path.home() / &quot;nestbox&quot; / &quot;snaps&quot;
 MAX_SNAPS = 1500
-BIRD_CLASS = 14           # COCO: &quot;bird&quot;
+# Second copy without the green frame, for the next round of training. None = off.
+SNAP_RAW_DIR = Path.home() / &quot;nestbox&quot; / &quot;snaps_raw&quot;
+MAX_SNAPS_RAW = 1500
+# Own model, trained on pictures from this box. Falling back to the general model
+# means setting MODEL_PATH to &quot;yolov8n.pt&quot; and BIRD_CLASS to 14.
+MODEL_PATH = str(Path.home() / &quot;nestbox&quot; / &quot;nestbox-model.pt&quot;)
+BIRD_CLASS = 0            # own model: class 0 = &quot;bird&quot; (general COCO model: 14)
+
+# Mastodon: one post per visit, triggered when the box turns empty.
+# The token comes from the environment, never from this file.
+MASTODON = True
+MASTODON_SERVER = &quot;https://mastodon.social&quot;
+MASTODON_TOKEN = os.environ.get(&quot;MASTODON_TOKEN&quot;, &quot;&quot;)
+MASTODON_VISIBILITY = &quot;public&quot;
+MASTODON_LANGUAGE = &quot;en&quot;
+MASTODON_TAGS = &quot;#birds #nestbox&quot;
+MASTODON_GAP = 600        # seconds between two posts
+MASTODON_ALT = (&quot;Black-and-white infrared photograph taken inside a wooden nest box, &quot;
+                &quot;looking down from the roof. A bird is visible in the box.&quot;)
+# {date}, {time} and {duration} are filled in.
+MASTODON_TEXTS = [
+    &quot;Incident report, {date}. A bird was observed inside the box at {time}. It stayed {duration} and left without comment.&quot;,
+    &quot;Incident report, {date}. Entry recorded at {time}. The visitor remained {duration} and did not state the purpose of the visit.&quot;,
+    &quot;Incident report, {date}. At {time} an unidentified bird entered the premises. Duration of stay: {duration}. No damage reported.&quot;,
+    &quot;Incident report, {date}. Unannounced inspection at {time}, {duration}. The inspector left no report.&quot;,
+    &quot;Incident report, {date}. A bird occupied the box at {time} for {duration}. It declined to register.&quot;,
+    &quot;Incident report, {date}. Movement at {time}, confirmed as a bird. Time on site: {duration}. The matter is closed.&quot;,
+]
+MASTODON_TEXTS_SHORT = [  # visits under 10 seconds
+    &quot;Incident report, {date}. Brief intrusion at {time}, {duration}. The visitor reconsidered.&quot;,
+    &quot;Incident report, {date}. At {time} a bird looked in for {duration} and thought better of it.&quot;,
+]
+MASTODON_TEXTS_LONG = [   # visits over 2 minutes
+    &quot;Incident report, {date}. Extended stay at {time}, {duration}. No lease has been signed.&quot;,
+    &quot;Incident report, {date}. The box was occupied from {time} for {duration}. The occupant made itself at home.&quot;,
+]
+MASTODON_TEXTS_RARE = [   # turn up now and then, see MASTODON_RARE_SHARE
+    &quot;Incident report, {date}. Entry recorded at {time}. The device remained {duration} and did not identify its operator.&quot;,
+    &quot;Incident report, {date}. At {time} the subject entered and was photographed for {duration}. No serial number was visible.&quot;,
+    &quot;Incident report, {date}. The visitor remained {duration} from {time}. It was observed observing the premises.&quot;,
+    &quot;Incident report, {date}. At {time} the unit powered down inside the box for {duration} and then departed.&quot;,
+    &quot;Incident report, {date}. Activity recorded from {time}, duration {duration}. Whether the subject is a bird remains unverified.&quot;,
+    &quot;Incident report, {date}. At {time} the subject inspected the camera for {duration}. The camera inspected the subject. Neither filed a report.&quot;,
+]
+MASTODON_RARE_SHARE = 0.2  # 0.0 = never, 1.0 = always
 # ------------------------------
 
 latest = {&quot;frame&quot;: None, &quot;ok&quot;: False}
+
+MONTHS = [&quot;January&quot;, &quot;February&quot;, &quot;March&quot;, &quot;April&quot;, &quot;May&quot;, &quot;June&quot;,
+          &quot;July&quot;, &quot;August&quot;, &quot;September&quot;, &quot;October&quot;, &quot;November&quot;, &quot;December&quot;]
 
 
 def log(msg):
@@ -105,32 +171,221 @@ def reader():
         time.sleep(2)
 
 
-def notify(state):
-    log(f&quot;=== Nest box: {state.upper()} ===&quot;)
-    if HA_WEBHOOK:
+def notify(state, extra=&quot;&quot;):
+    log(f&quot;=== Nest box: {state.upper()}{extra.rstrip()} ===&quot;)
+    if not HA_WEBHOOK:
+        return
+    try:
+        r = requests.post(HA_WEBHOOK, json={&quot;state&quot;: state, &quot;time&quot;: datetime.now().isoformat()}, timeout=5)
+        if not r.ok:
+            log(f&quot;Home Assistant answered {r.status_code}&quot;)
+    except Exception as e:
+        log(f&quot;Home Assistant not reachable: {e}&quot;)
+
+
+def duration_text(sec):
+    &quot;&quot;&quot;45 seconds, 2 minutes 14 seconds, 11 hours 3 minutes (roosting in winter).&quot;&quot;&quot;
+    whole = int(round(sec))
+    h, rest = divmod(whole, 3600)
+    m, s = divmod(rest, 60)
+    parts = []
+    if h:
+        parts.append(f&quot;{h} hour&quot; + (&quot;s&quot; if h != 1 else &quot;&quot;))
+    if m:
+        parts.append(f&quot;{m} minute&quot; + (&quot;s&quot; if m != 1 else &quot;&quot;))
+    if s and not h:
+        parts.append(f&quot;{s} second&quot; + (&quot;s&quot; if s != 1 else &quot;&quot;))
+    return &quot; &quot;.join(parts) or &quot;0 seconds&quot;
+
+
+def post_text(start, duration_sec):
+    &quot;&quot;&quot;Builds the caption from a random template.&quot;&quot;&quot;
+    if MASTODON_TEXTS_RARE and random.random() &lt; MASTODON_RARE_SHARE:
+        templates = MASTODON_TEXTS_RARE
+    elif duration_sec &lt; 10:
+        templates = MASTODON_TEXTS_SHORT or MASTODON_TEXTS
+    elif duration_sec &gt; 120:
+        templates = MASTODON_TEXTS_LONG or MASTODON_TEXTS
+    else:
+        templates = MASTODON_TEXTS
+    text = random.choice(templates).format(
+        date=f&quot;{start.day} {MONTHS[start.month - 1]} {start.year}&quot;,
+        time=f&quot;{start:%H:%M}&quot;,
+        duration=duration_text(duration_sec),
+    )
+    return f&quot;{text}\n\n{MASTODON_TAGS}&quot;.strip()
+
+
+last_post = 0.0
+post_lock = threading.Lock()
+
+
+def mastodon_send(picture, text, visibility=None):
+    &quot;&quot;&quot;Uploads the picture and publishes the post. Returns (ok, message).&quot;&quot;&quot;
+    head = {&quot;Authorization&quot;: f&quot;Bearer {MASTODON_TOKEN}&quot;, &quot;Accept&quot;: &quot;application/json&quot;}
+    try:
+        with open(picture, &quot;rb&quot;) as f:
+            answer = requests.post(f&quot;{MASTODON_SERVER}/api/v2/media&quot;, headers=head,
+                                   files={&quot;file&quot;: (os.path.basename(picture), f, &quot;image/jpeg&quot;)},
+                                   data={&quot;description&quot;: MASTODON_ALT}, timeout=60)
+        if answer.status_code not in (200, 202):
+            return False, f&quot;picture rejected ({answer.status_code})&quot;
+        media = answer.json().get(&quot;id&quot;)
+        if not media:
+            return False, &quot;no media id returned&quot;
+        # 202 means: still being processed, wait a little
+        for _ in range(20):
+            if answer.status_code == 200:
+                break
+            time.sleep(3)
+            answer = requests.get(f&quot;{MASTODON_SERVER}/api/v1/media/{media}&quot;, headers=head, timeout=30)
+        data = {&quot;status&quot;: text, &quot;media_ids&quot;: [media],
+                &quot;visibility&quot;: visibility or MASTODON_VISIBILITY, &quot;language&quot;: MASTODON_LANGUAGE}
+        head2 = dict(head)
+        head2[&quot;Idempotency-Key&quot;] = f&quot;nestbox-{os.path.basename(picture)}&quot;
+        answer = requests.post(f&quot;{MASTODON_SERVER}/api/v1/statuses&quot;, headers=head2, json=data, timeout=60)
+        if answer.status_code != 200:
+            return False, f&quot;post rejected ({answer.status_code})&quot;
+        return True, answer.json().get(&quot;url&quot;, &quot;published&quot;)
+    except Exception as e:
+        return False, f&quot;{type(e).__name__}: {e}&quot;
+
+
+def mastodon_post(picture, start, duration_sec):
+    &quot;&quot;&quot;Checks the conditions and sends in a thread of its own.&quot;&quot;&quot;
+    global last_post
+    if not MASTODON:
+        return
+    if not MASTODON_TOKEN:
+        log(&quot;Mastodon: no token set, nothing posted&quot;)
+        return
+    if not picture or not Path(picture).exists():
+        log(&quot;Mastodon: no picture for this visit, nothing posted&quot;)
+        return
+    with post_lock:
+        if time.time() - last_post &lt; MASTODON_GAP:
+            log(&quot;Mastodon: too soon after the last post, nothing posted&quot;)
+            return
+        last_post = time.time()
+    text = post_text(start, duration_sec)
+
+    def work():
+        ok, message = mastodon_send(picture, text)
+        log((&quot;Mastodon: published &quot; if ok else &quot;Mastodon: &quot;) + str(message))
+
+    threading.Thread(target=work, daemon=True).start()
+
+
+class Visit:
+    &quot;&quot;&quot;Keeps track of hits, decides occupied/empty and collects values.&quot;&quot;&quot;
+
+    def __init__(self):
+        self.occupied = False
+        self.hits = []          # times of all hits (model or motion)
+        self.bird_hits = []     # times of the model hits
+        self.last_hit = 0.0
+        self.best = 0.0         # best model value since the visit started
+        self.birds = 0          # number of model hits since it started
+        self.start = 0.0
+        self.held = False       # &quot;occupied&quot; was held back and already logged
+        self.picture = None     # best saved picture of this visit (no frame drawn)
+        self.picture_value = 0.0
+        self.last_visit = None  # details for the Mastodon post
+
+    def values(self):
+        plural = &quot;&quot; if self.birds == 1 else &quot;s&quot;
+        return f&quot;best value {self.best:.2f}, {self.birds} hit{plural}&quot;
+
+    def check(self, now, motion, best, n_birds):
+        &quot;&quot;&quot;Evaluates one bird check. Returns a list of (kind, text).&quot;&quot;&quot;
+        out = []
+        self.hits = [t for t in self.hits if now - t &lt;= HIT_WINDOW]
+        self.bird_hits = [t for t in self.bird_hits if now - t &lt;= HIT_WINDOW]
+        if not self.occupied and not self.hits:
+            self.best, self.birds, self.start, self.held = 0.0, 0, now, False
+            self.picture, self.picture_value = None, 0.0
+        self.best = max(self.best, best)
+        if n_birds:
+            self.birds += 1
+            self.bird_hits.append(now)
+        hit = (n_birds &gt; 0 and MODE in (&quot;model&quot;, &quot;both&quot;)) or (motion and MODE in (&quot;motion&quot;, &quot;both&quot;))
+        if hit:
+            self.hits.append(now)
+            self.last_hit = now
+        if not self.occupied and len(self.hits) &gt;= HITS_NEEDED:
+            if MODEL_REQUIRED and not self.bird_hits:
+                if not self.held:
+                    self.held = True
+                    out.append((&quot;held&quot;, f&quot;occupied held back, no model hit, best value {self.best:.2f}&quot;))
+            else:
+                self.occupied = True
+                out.append((&quot;occupied&quot;, f&quot;  {self.values()}&quot;))
+        return out
+
+    def keep_picture(self, path, value):
+        &quot;&quot;&quot;Keeps the picture with the highest model value of this visit.&quot;&quot;&quot;
+        if path and value &gt; self.picture_value:
+            self.picture, self.picture_value = path, value
+
+    def empty(self, now):
+        &quot;&quot;&quot;Returns the extra text for &quot;empty&quot; once it is time, otherwise None.&quot;&quot;&quot;
+        if self.occupied and now - self.last_hit &gt; EMPTY_AFTER:
+            duration = max(0.0, self.last_hit - self.start)
+            text = f&quot;  {self.values()}, visit about {duration_text(duration)}&quot;
+            self.last_visit = {
+                &quot;start&quot;: datetime.fromtimestamp(self.start),
+                &quot;duration&quot;: duration,
+                &quot;picture&quot;: self.picture,
+            }
+            self.occupied = False
+            self.hits = []
+            self.bird_hits = []
+            return text
+        return None
+
+
+def tidy(folder, keep):
+    &quot;&quot;&quot;Keeps only the newest pictures.&quot;&quot;&quot;
+    for old in sorted(folder.glob(&quot;*.jpg&quot;))[:-keep]:
         try:
-            requests.post(HA_WEBHOOK, json={&quot;state&quot;: state, &quot;time&quot;: datetime.now().isoformat()}, timeout=5)
-        except Exception as e:
-            log(f&quot;Home Assistant not reachable: {e}&quot;)
+            old.unlink()
+        except OSError:
+            pass
 
 
 def save_snap(frame, label, boxes=None):
+    &quot;&quot;&quot;Saves the picture with the green frame and, if switched on, a copy without.&quot;&quot;&quot;
+    stamp = f&quot;{datetime.now():%Y%m%d-%H%M%S}&quot;
     SNAP_DIR.mkdir(parents=True, exist_ok=True)
     img = frame.copy()
     for (x1, y1, x2, y2, c) in boxes or []:
         cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
         cv2.putText(img, f&quot;{c:.2f}&quot;, (int(x1), max(int(y1) - 5, 12)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-    cv2.imwrite(str(SNAP_DIR / f&quot;{datetime.now():%Y%m%d-%H%M%S}-{label}.jpg&quot;), img)
-    files = sorted(SNAP_DIR.glob(&quot;*.jpg&quot;))
-    for old in files[:-MAX_SNAPS]:
-        old.unlink()
+    cv2.imwrite(str(SNAP_DIR / f&quot;{stamp}-{label}.jpg&quot;), img)
+    tidy(SNAP_DIR, MAX_SNAPS)
+    if SNAP_RAW_DIR is None:
+        return None
+    try:
+        SNAP_RAW_DIR.mkdir(parents=True, exist_ok=True)
+        raw = SNAP_RAW_DIR / f&quot;{stamp}-{label}.jpg&quot;
+        cv2.imwrite(str(raw), frame)
+        tidy(SNAP_RAW_DIR, MAX_SNAPS_RAW)
+        return str(raw)
+    except Exception as e:
+        log(f&quot;picture without frame not saved: {e}&quot;)
+        return None
 
 
 def main():
     threading.Thread(target=reader, daemon=True).start()
-    log(&quot;Loading bird model ...&quot;)
-    model = YOLO(&quot;yolov8n.pt&quot;)
-    log(f&quot;Mode: {MODE}&quot;)
+    log(f&quot;Loading bird model {MODEL_PATH} ...&quot;)
+    if &quot;/&quot; in MODEL_PATH and not Path(MODEL_PATH).exists():
+        log(f&quot;Model not found: {MODEL_PATH}&quot;)
+        sys.exit(1)
+    model = YOLO(MODEL_PATH)
+    log(f&quot;Mode: {MODE}, model required: {MODEL_REQUIRED}, threshold {BIRD_CONF:.2f}&quot;)
+    if MASTODON:
+        log(&quot;Mastodon: &quot; + (&quot;token set&quot; if MASTODON_TOKEN else &quot;no token, nothing will be posted&quot;))
 
     def detect(img, imgsz):
         res = model(img, imgsz=imgsz, conf=MIN_CONF, classes=[BIRD_CLASS], verbose=False)[0]
@@ -138,17 +393,13 @@ def main():
         return [b for b in boxes if min(b[2] - b[0], b[3] - b[1]) &gt;= MIN_BOX]
 
     def find_birds(frame):
-        boxes = detect(frame, CHECK_IMGSZ)
-        if TOP_STRIP &gt; 0:
-            h = frame.shape[0]
-            boxes += detect(frame[: int(h * TOP_STRIP)], STRIP_IMGSZ)
-        return boxes
+        # The own model also finds birds cut off at the top edge, so the extra
+        # strip the earlier versions checked separately is no longer needed.
+        return detect(frame, CHECK_IMGSZ)
 
     bg = None
     warmup = 30
-    occupied = False
-    hits = []
-    last_hit = 0.0
+    visit = Visit()
     last_check = 0.0
     last_snap = 0.0
     last_motion_msg = 0.0
@@ -177,8 +428,8 @@ def main():
             last_motion_msg = now
             notify(&quot;motion&quot;)
 
-        interval = CHECK_EVERY_OCC if occupied else CHECK_EVERY
-        if (motion or occupied) and now - last_check &gt;= interval:
+        interval = CHECK_EVERY_OCC if visit.occupied else CHECK_EVERY
+        if (motion or visit.occupied) and now - last_check &gt;= interval:
             last_check = now
             boxes = find_birds(frame)
             birds = [b for b in boxes if b[4] &gt;= BIRD_CONF]
@@ -186,26 +437,25 @@ def main():
             if birds:
                 log(f&quot;Bird detected (confidence {best:.2f})&quot;)
                 if now - last_snap &gt;= SNAP_EVERY:
-                    save_snap(frame, &quot;bird&quot;, birds)
+                    visit.keep_picture(save_snap(frame, &quot;bird&quot;, birds), best)
                     last_snap = now
             elif motion:
-                log(f&quot;Motion, but no bird detected (best score {best:.2f})&quot;)
+                log(f&quot;Motion, but no bird detected (best value {best:.2f})&quot;)
                 if now - last_snap &gt;= SNAP_EVERY:
                     save_snap(frame, &quot;nobird&quot;, boxes)
                     last_snap = now
-            hit = (bool(birds) and MODE in (&quot;model&quot;, &quot;both&quot;)) or (motion and MODE in (&quot;motion&quot;, &quot;both&quot;))
-            if hit:
-                hits.append(now)
-                last_hit = now
-            hits = [t for t in hits if now - t &lt;= HIT_WINDOW]
-            if not occupied and len(hits) &gt;= HITS_NEEDED:
-                occupied = True
-                notify(&quot;occupied&quot;)
+            for kind, text in visit.check(now, motion, best, len(birds)):
+                if kind == &quot;occupied&quot;:
+                    notify(&quot;occupied&quot;, text)
+                else:
+                    log(text)
 
-        if occupied and now - last_hit &gt; EMPTY_AFTER:
-            occupied = False
-            hits = []
-            notify(&quot;empty&quot;)
+        empty_text = visit.empty(now)
+        if empty_text is not None:
+            notify(&quot;empty&quot;, empty_text)
+            done = visit.last_visit
+            if done:
+                mastodon_post(done[&quot;picture&quot;], done[&quot;start&quot;], done[&quot;duration&quot;])
 
 
 if __name__ == &quot;__main__&quot;:
@@ -229,7 +479,12 @@ WantedBy=multi-user.target
 
 # /etc/systemd/system/nestbox-watch.service.d/ha.conf
 [Service]
-Environment=HA_WEBHOOK=http://&lt;home-assistant&gt;:8123/api/webhook/&lt;secret-id&gt;</code></pre>
+Environment=HA_WEBHOOK=http://&lt;home-assistant&gt;:8123/api/webhook/&lt;secret-id&gt;
+
+# /etc/systemd/system/nestbox-watch.service.d/mastodon.conf
+[Service]
+EnvironmentFile=/home/&lt;your-user&gt;/nestbox/mastodon.env</code></pre>
+<p>The posting token lives in that one file, one line, readable only by its owner. It is never in the script and never in a backup.</p>
 <pre><code>sudo systemctl daemon-reload
 sudo systemctl enable --now nestbox-watch
 journalctl -u nestbox-watch -b --no-pager | tail -n 20</code></pre>
@@ -245,11 +500,17 @@ journalctl -u nestbox-watch -b --no-pager | tail -n 20</code></pre>
 <p>I tested several variants on 24 saved pictures: the whole picture at 640 and at 1280 pixels, the top strip alone at 960 and 1280 pixels, and the same with more contrast. The old 640 check found a bird in none of the 22 pictures that were not marked as false alarms. The whole picture at 1280 pixels found 12 and the top strip at 1280 pixels found 7, at a threshold of 0.08. More contrast did not help. The script then used both 1280 checks and a threshold of 0.13. The price is about four times the computation per check, which the Pi 5 handles without a change in temperature so far.</p>
 <h3>26 October: the dust speck</h3>
 <p>On 26 October the sun shone through the entrance hole, the motion check fired, and the box was reported as occupied for about four minutes with nobody inside. The reason was a small dark speck on the right wall, about 20 pixels wide, which the sharper check took for a bird (scores 0.13 to 0.18). My first test had not shown this, because it only looked at the highest score per picture and could not tell a bird from a speck. A tit in this picture is about 100 pixels or more across, so the script now ignores detections whose shorter side is below 40 pixels. Raising the threshold instead would have been worse: the speck reached 0.18, a faint real bird only 0.13. A second test on 45 pictures, with this filter, gave: old 640 check 1 of 30, whole picture at 1280 pixels 5 of 30, top strip at 1280 pixels 8 of 30, and no false alarm among 15 pictures without a bird. The pictures are on the <a href="visits.html">Visits</a> page.</p>
+<h3>28 October: the model gets a veto</h3>
+<p>Motion alone was still enough to call the box occupied, and that kept producing false alarms at dusk: large soft shadows, most likely an insect or a spider at the infrared light. Since then the box is only reported as occupied if the model confirmed a bird at least once. Held-back cases are noted instead. Over the following two weeks this held back five shadows and not a single bird.</p>
+<h3>11 November: a model of its own</h3>
+<p>The general-purpose model was replaced by one trained on 143 pictures from this box, see <a href="#own-model">above</a>. Detection on held-back pictures went from 9 of 26 birds to 26 of 26, with no false alarms either way. The threshold went up from 0.13 to 0.30, the separate look at the top strip was dropped, and a check got faster rather than slower.</p>
+<h3>12 November: the box files its first report</h3>
+<p>The first visit under the new model lasted about a minute, with twelve model hits between 0.66 and 0.91. The best picture went out as an incident report by itself. The same visit shows what changed: the model found the bird from behind, as a wing from above, and as a few tail feathers at the edge of the frame.</p>
 <h3>What is still open</h3>
-<p>The tests ran on saved pictures, and on those the green frames are already painted in, which changes the scores. They tend to underestimate the live scores. There are also only about 15 pictures without a bird, mostly from the same scene. Shadows, leaves or other reflections at the entrance have not been tested. I will keep watching the log and change the script when something new turns up.</p>
-
+<p>The new model has only ever seen an empty box in autumn and winter, lit by infrared. Nest material, daylight through the entrance hole in spring, and chicks are all scenes it does not know. It will need more pictures then, and the box now saves every picture a second time without the green frame, so the next round has clean material to work with.</p>
+<p>There is also a new risk that did not exist before. The model used to be a second opinion; now everything rests on it. If it ever mistakes something for a bird, the box says occupied straight away, and a picture of it is published. In testing that never happened, but the night-time shadows were only represented by 13 pictures. If it starts happening, the threshold goes up.</p>
 <div class="pager"><a href="sound.html">&larr; Bird sounds</a><a href="homeassistant.html">Home Assistant &rarr;</a></div>
 </div></main>
-<footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: <a href="mailto:birdsarentreal@mailbox.org">birdsarentreal@mailbox.org</a><br>Code: MIT licence. Texts and photos &copy; 2026 snoth0x53, all rights reserved. Building it yourself is welcome.<br><a href="404.html" class="egg">Birds aren't real.</a> This box is just checking.</div></footer>
+<footer class="site"><div class="wrap">A hobby project, documented for anyone who wants to build something similar. No tracking, no cookies, no external scripts or fonts. Contact: <a href="mailto:birdsarentreal@mailbox.org">birdsarentreal@mailbox.org</a><br>The box files its own reports: <a rel="me" href="https://mastodon.social/@Nest_Box_incident_Desk">@Nest_Box_incident_Desk@mastodon.social</a><br>Code: MIT licence. Texts and photos &copy; 2026 snoth0x53, all rights reserved. Building it yourself is welcome.<br><a href="404.html" class="egg">Birds aren't real.</a> This box is just checking.</div></footer>
 </body>
 </html>

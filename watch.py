@@ -58,29 +58,19 @@ MASTODON_GAP = 600        # seconds between two posts
 MASTODON_ALT = ("Black-and-white infrared photograph taken inside a wooden nest box, "
                 "looking down from the roof. A bird is visible in the box.")
 # {date}, {time} and {duration} are filled in.
+# One template of each kind is shown here; the running version has a handful per
+# list, so the reports do not repeat themselves. Write your own.
 MASTODON_TEXTS = [
     "Incident report, {date}. A bird was observed inside the box at {time}. It stayed {duration} and left without comment.",
-    "Incident report, {date}. Entry recorded at {time}. The visitor remained {duration} and did not state the purpose of the visit.",
-    "Incident report, {date}. At {time} an unidentified bird entered the premises. Duration of stay: {duration}. No damage reported.",
-    "Incident report, {date}. Unannounced inspection at {time}, {duration}. The inspector left no report.",
-    "Incident report, {date}. A bird occupied the box at {time} for {duration}. It declined to register.",
-    "Incident report, {date}. Movement at {time}, confirmed as a bird. Time on site: {duration}. The matter is closed.",
 ]
 MASTODON_TEXTS_SHORT = [  # visits under 10 seconds
     "Incident report, {date}. Brief intrusion at {time}, {duration}. The visitor reconsidered.",
-    "Incident report, {date}. At {time} a bird looked in for {duration} and thought better of it.",
 ]
 MASTODON_TEXTS_LONG = [   # visits over 2 minutes
     "Incident report, {date}. Extended stay at {time}, {duration}. No lease has been signed.",
-    "Incident report, {date}. The box was occupied from {time} for {duration}. The occupant made itself at home.",
 ]
 MASTODON_TEXTS_RARE = [   # turn up now and then, see MASTODON_RARE_SHARE
     "Incident report, {date}. Entry recorded at {time}. The device remained {duration} and did not identify its operator.",
-    "Incident report, {date}. At {time} the subject entered and was photographed for {duration}. No serial number was visible.",
-    "Incident report, {date}. The visitor remained {duration} from {time}. It was observed observing the premises.",
-    "Incident report, {date}. At {time} the unit powered down inside the box for {duration} and then departed.",
-    "Incident report, {date}. Activity recorded from {time}, duration {duration}. Whether the subject is a bird remains unverified.",
-    "Incident report, {date}. At {time} the subject inspected the camera for {duration}. The camera inspected the subject. Neither filed a report.",
 ]
 MASTODON_RARE_SHARE = 0.2  # 0.0 = never, 1.0 = always
 # ------------------------------
@@ -306,10 +296,11 @@ def save_snap(frame, label, boxes=None):
     for (x1, y1, x2, y2, c) in boxes or []:
         cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
         cv2.putText(img, f"{c:.2f}", (int(x1), max(int(y1) - 5, 12)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-    cv2.imwrite(str(SNAP_DIR / f"{stamp}-{label}.jpg"), img)
+    framed = SNAP_DIR / f"{stamp}-{label}.jpg"
+    cv2.imwrite(str(framed), img)
     tidy(SNAP_DIR, MAX_SNAPS)
     if SNAP_RAW_DIR is None:
-        return None
+        return str(framed)
     try:
         SNAP_RAW_DIR.mkdir(parents=True, exist_ok=True)
         raw = SNAP_RAW_DIR / f"{stamp}-{label}.jpg"
@@ -318,7 +309,7 @@ def save_snap(frame, label, boxes=None):
         return str(raw)
     except Exception as e:
         log(f"picture without frame not saved: {e}")
-        return None
+        return str(framed)
 
 
 def main():
@@ -379,6 +370,9 @@ def main():
             boxes = find_birds(frame)
             birds = [b for b in boxes if b[4] >= BIRD_CONF]
             best = max((b[4] for b in boxes), default=0.0)
+            # Evaluate first: at the start of a visit check() resets everything,
+            # including the picture kept so far. Only then save and keep a picture.
+            messages = visit.check(now, motion, best, len(birds))
             if birds:
                 log(f"Bird detected (confidence {best:.2f})")
                 if now - last_snap >= SNAP_EVERY:
@@ -389,7 +383,7 @@ def main():
                 if now - last_snap >= SNAP_EVERY:
                     save_snap(frame, "nobird", boxes)
                     last_snap = now
-            for kind, text in visit.check(now, motion, best, len(birds)):
+            for kind, text in messages:
                 if kind == "occupied":
                     notify("occupied", text)
                 else:

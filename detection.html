@@ -52,7 +52,7 @@ TMPDIR=~/tmp ~/nestbox/venv/bin/pip install --no-cache-dir ultralytics opencv-py
 <p>When a visit ends, the box picks the picture with the highest score from that visit, the copy without the green frame, and publishes it with a short caption. The captions are picked at random from a handful of templates, in the same deadpan register as the <a href="results.html">field guide</a>. Date, time and duration are filled in. Nothing else about the visit leaves the Pi, and the pictures carry no metadata at all.</p>
 <p>It posts at most once per visit, with a ten minute gap, and only when the model actually saw a bird. A false alarm never becomes a post.</p>
 <h2>The script</h2>
-<p>This is the whole thing, as it runs now.</p>
+<p>This is the whole thing, as it runs now. Only the caption templates are shortened to one example each, so the reports keep their element of surprise.</p>
 <pre><code>#!/usr/bin/env python3
 &quot;&quot;&quot;Nest box watch: motion -&gt; bird check -&gt; message to Home Assistant -&gt; post.&quot;&quot;&quot;
 # SPDX-License-Identifier: MIT
@@ -113,29 +113,19 @@ MASTODON_GAP = 600        # seconds between two posts
 MASTODON_ALT = (&quot;Black-and-white infrared photograph taken inside a wooden nest box, &quot;
                 &quot;looking down from the roof. A bird is visible in the box.&quot;)
 # {date}, {time} and {duration} are filled in.
+# One template of each kind is shown here; the running version has a handful per
+# list, so the reports do not repeat themselves. Write your own.
 MASTODON_TEXTS = [
     &quot;Incident report, {date}. A bird was observed inside the box at {time}. It stayed {duration} and left without comment.&quot;,
-    &quot;Incident report, {date}. Entry recorded at {time}. The visitor remained {duration} and did not state the purpose of the visit.&quot;,
-    &quot;Incident report, {date}. At {time} an unidentified bird entered the premises. Duration of stay: {duration}. No damage reported.&quot;,
-    &quot;Incident report, {date}. Unannounced inspection at {time}, {duration}. The inspector left no report.&quot;,
-    &quot;Incident report, {date}. A bird occupied the box at {time} for {duration}. It declined to register.&quot;,
-    &quot;Incident report, {date}. Movement at {time}, confirmed as a bird. Time on site: {duration}. The matter is closed.&quot;,
 ]
 MASTODON_TEXTS_SHORT = [  # visits under 10 seconds
     &quot;Incident report, {date}. Brief intrusion at {time}, {duration}. The visitor reconsidered.&quot;,
-    &quot;Incident report, {date}. At {time} a bird looked in for {duration} and thought better of it.&quot;,
 ]
 MASTODON_TEXTS_LONG = [   # visits over 2 minutes
     &quot;Incident report, {date}. Extended stay at {time}, {duration}. No lease has been signed.&quot;,
-    &quot;Incident report, {date}. The box was occupied from {time} for {duration}. The occupant made itself at home.&quot;,
 ]
 MASTODON_TEXTS_RARE = [   # turn up now and then, see MASTODON_RARE_SHARE
     &quot;Incident report, {date}. Entry recorded at {time}. The device remained {duration} and did not identify its operator.&quot;,
-    &quot;Incident report, {date}. At {time} the subject entered and was photographed for {duration}. No serial number was visible.&quot;,
-    &quot;Incident report, {date}. The visitor remained {duration} from {time}. It was observed observing the premises.&quot;,
-    &quot;Incident report, {date}. At {time} the unit powered down inside the box for {duration} and then departed.&quot;,
-    &quot;Incident report, {date}. Activity recorded from {time}, duration {duration}. Whether the subject is a bird remains unverified.&quot;,
-    &quot;Incident report, {date}. At {time} the subject inspected the camera for {duration}. The camera inspected the subject. Neither filed a report.&quot;,
 ]
 MASTODON_RARE_SHARE = 0.2  # 0.0 = never, 1.0 = always
 # ------------------------------
@@ -361,10 +351,11 @@ def save_snap(frame, label, boxes=None):
     for (x1, y1, x2, y2, c) in boxes or []:
         cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
         cv2.putText(img, f&quot;{c:.2f}&quot;, (int(x1), max(int(y1) - 5, 12)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-    cv2.imwrite(str(SNAP_DIR / f&quot;{stamp}-{label}.jpg&quot;), img)
+    framed = SNAP_DIR / f&quot;{stamp}-{label}.jpg&quot;
+    cv2.imwrite(str(framed), img)
     tidy(SNAP_DIR, MAX_SNAPS)
     if SNAP_RAW_DIR is None:
-        return None
+        return str(framed)
     try:
         SNAP_RAW_DIR.mkdir(parents=True, exist_ok=True)
         raw = SNAP_RAW_DIR / f&quot;{stamp}-{label}.jpg&quot;
@@ -373,7 +364,7 @@ def save_snap(frame, label, boxes=None):
         return str(raw)
     except Exception as e:
         log(f&quot;picture without frame not saved: {e}&quot;)
-        return None
+        return str(framed)
 
 
 def main():
@@ -434,6 +425,9 @@ def main():
             boxes = find_birds(frame)
             birds = [b for b in boxes if b[4] &gt;= BIRD_CONF]
             best = max((b[4] for b in boxes), default=0.0)
+            # Evaluate first: at the start of a visit check() resets everything,
+            # including the picture kept so far. Only then save and keep a picture.
+            messages = visit.check(now, motion, best, len(birds))
             if birds:
                 log(f&quot;Bird detected (confidence {best:.2f})&quot;)
                 if now - last_snap &gt;= SNAP_EVERY:
@@ -444,7 +438,7 @@ def main():
                 if now - last_snap &gt;= SNAP_EVERY:
                     save_snap(frame, &quot;nobird&quot;, boxes)
                     last_snap = now
-            for kind, text in visit.check(now, motion, best, len(birds)):
+            for kind, text in messages:
                 if kind == &quot;occupied&quot;:
                     notify(&quot;occupied&quot;, text)
                 else:

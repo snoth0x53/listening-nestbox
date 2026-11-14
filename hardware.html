@@ -21,7 +21,7 @@
 <tr><td>Weatherproof enclosure, IP67, clear lid</td><td>Holds the Pi and the voltage regulator, mounted next to the box.</td></tr>
 <tr><td>Camera Module 3 Wide NoIR</td><td>No infrared filter, so it sees the IR light. Wide angle, which suits a small box.</td></tr>
 <tr><td>Camera cable, 15-pin to 22-pin, 30 cm</td><td>The Pi 5 uses the smaller connector.</td></tr>
-<tr><td>IR LED module, 850 nm</td><td>Cheap two-pack. Light-sensor (LDR) covered so it stays on permanently.</td></tr>
+<tr><td>IR LED module, 850 nm</td><td>Cheap two-pack. Its light sensor (LDR) is left uncovered: inside the box it is dark enough that the LEDs stay on by themselves.</td></tr>
 <tr><td>LM2596 buck converter</td><td>Lowers the voltage for the IR module.</td></tr>
 <tr><td>USB lavalier microphone, omnidirectional</td><td>Mounted outside, for BirdNET-Pi.</td></tr>
 <tr><td>SD card, 64 GB, high endurance</td><td>A "high endurance" card is meant for continuous writing, which this project does all day.</td></tr>
@@ -29,7 +29,7 @@
 </table></div>
 <figure><img src="img/camera-ir-module.jpg" alt="A small camera board and an infrared LED module fixed side by side on a thin metal strip, with a flat ribbon cable and cable ties" loading="lazy" style="max-height:560px;width:auto;max-width:100%;margin:0 auto;display:block"><figcaption>Camera module (left of the ribbon cable) and IR light on one metal strip. The cable ties are strain relief and hold the strip in place.</figcaption></figure>
 <h2>The IR light</h2>
-<p>The module is fed from the Pi through the LM2596: 5 V from pin 2, ground from pin 6, adjusted to about 2.9 V. At that voltage it is bright enough for the camera and stays much cooler than at full power. It is on permanently, with the light sensor covered; no MOSFET or switching circuit.</p>
+<p>The module is fed from the Pi through the LM2596: 5 V from pin 2, ground from pin 6, adjusted to about 2.9 V. At that voltage it is bright enough for the camera and stays much cooler than at full power. There is no MOSFET and no switching circuit: the module's own light sensor is left uncovered, and the box is dark enough inside that the LEDs stay on anyway, day and night. Taping the sensor over would be the fix if too much daylight came through the entrance hole, but here it was never needed.</p>
 <div class="note warn"><strong>Heat:</strong> the back of the module still gets warm. Once it is mounted in the box it can no longer be touched, so temperature can only be judged indirectly. A small heat sink on the back is an option, and the module is something to watch in summer.</div>
 <h2>Bench test before mounting</h2>
 <figure><img src="img/bench-test.jpg" alt="A nest box standing on a cutting mat next to a Raspberry Pi lying on a multimeter, with a small voltage regulator board and wires connecting them" loading="lazy" style="max-height:560px;width:auto;max-width:100%;margin:0 auto;display:block"><figcaption>Bench test: the Pi (lying on a multimeter), the LM2596 and the ribbon cable to the box, before everything went outside.</figcaption></figure>
@@ -55,7 +55,7 @@ vcgencmd get_throttled     # 0x0 is good</code></pre>
 <text x="275" y="84" text-anchor="middle" font-size="15">buck converter</text>
 <text x="275" y="112" text-anchor="middle" font-size="15">about 2.9 V out</text>
 <text x="473" y="62" text-anchor="middle" font-weight="700">IR light</text>
-<text x="473" y="84" text-anchor="middle" font-size="15">light sensor</text><text x="473" y="104" text-anchor="middle" font-size="15">covered</text>
+<text x="473" y="84" text-anchor="middle" font-size="15">light sensor</text><text x="473" y="104" text-anchor="middle" font-size="15">uncovered</text>
 <text x="473" y="232" text-anchor="middle" font-weight="700">Camera</text>
 <text x="473" y="254" text-anchor="middle" font-size="15">NoIR, ribbon cable</text>
 <text x="181" y="52" text-anchor="middle" font-size="16" fill="#c0392b">+</text><text x="181" y="92" text-anchor="middle" font-size="18">&minus;</text>

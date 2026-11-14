@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-13",
+ "updated": "2026-11-14",
  "events": [
   {
    "date": "2026-10-12",
@@ -144,6 +144,12 @@
    "time": "12:33",
    "kind": "visit",
    "note": "About a minute inside the box, twelve model hits between 0.66 and 0.91. First visit published as a report."
+  },
+  {
+   "date": "2026-11-14",
+   "time": "14:50",
+   "kind": "visit",
+   "note": "Stayed inside for almost two minutes, the longest visit so far. Seventeen model hits, up to 0.92. For a few seconds it sat so close to the lens that the picture blurred and the model lost it."
   }
  ]
 }
